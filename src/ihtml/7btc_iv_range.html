@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC Implied Volatility — Approximate Movement Range</title>
+<link rel="stylesheet" href="../theme/ivory.min.css">
+<style>
+  :root { --grid: var(--rule); --range: var(--accent); --strike: var(--gray-700); }
+
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); overflow: hidden; color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px 16px; }
+  label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  input { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 6px 10px;
+          border: 1px solid var(--gray-300); border-radius: 8px; background: var(--bg); color: var(--fg);
+          font: 14px var(--mono); font-variant-numeric: tabular-nums; }
+  input:focus { outline: none; border-color: var(--accent); }
+  input[type=range] { padding: 0; border: 0; height: 32px; accent-color: var(--accent); }
+  label output { color: var(--fg); }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 12px 0 0; font-size: 14px; color: var(--body); }
+  .stats b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats .name { margin-left: auto; font-family: var(--mono); font-size: 12px;
+                 letter-spacing: .04em; color: var(--muted); }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+  .chart .note { font-family: var(--sans); font-size: 13px; fill: var(--body); }
+  .foot { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="controls">
+  <label>Spot ($)<input id="spot" type="number" value="100000" min="1" step="1000"></label>
+  <label>IV <output id="ivv"></output><input id="iv" type="range" value="60" min="5" max="200" step="1"></label>
+  <label>Days <output id="daysv"></output><input id="days" type="range" value="30" min="1" max="365" step="1"></label>
+  <label>Strike ($)<input id="strike" type="number" value="110000" min="1" step="1000"></label>
+</div>
+<div class="stats">
+  <span>1σ move <b id="move"></b></span>
+  <span>Lower <b id="lower"></b></span>
+  <span>Upper <b id="upper"></b></span>
+  <span class="name">±1σ ≈ spot × IV × √T</span>
+</div>
+<div class="chart" id="chart"></div>
+<p class="foot" id="foot">Symmetric approximation of the expiry price, not a Black–Scholes probability interval or a forecast. The strike does not set the range.</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const usd = v => "$" + Math.round(v).toLocaleString("en-US");
+const k = v => "$" + +(v / 1000).toFixed(1) + "k";
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const a in attrs) n.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+const box = $("chart");
+let svg;
+
+function draw() {
+  const S = Math.max(1, +$("spot").value || 1), iv = Math.max(.001, +$("iv").value || .001) / 100,
+        T = Math.max(1, +$("days").value || 1) / 365, K = Math.max(1, +$("strike").value || 1);
+  const p = iv * Math.sqrt(T), lo = S * (1 - p), hi = S * (1 + p);
+  $("move").textContent = "±" + (100 * p).toFixed(2) + "%";
+  $("lower").textContent = lo > 0 ? usd(lo) : "$0 (approx. breaks below 0)";
+  $("upper").textContent = usd(hi);
+  $("ivv").textContent = Math.round(iv * 100) + "%";
+  $("daysv").textContent = Math.round(T * 365);
+
+  const W = Math.max(320, box.clientWidth),
+        H = Math.max(160, innerHeight - box.offsetTop - $("foot").offsetHeight - 8);
+  const m = { l: 16, r: 16 };
+  // axis fixed around spot (±40%) so the band visibly grows/shrinks; widens in 20% steps only when needed
+  const need = Math.max(p, Math.abs(K / S - 1)) * 1.1, h = Math.max(.4, Math.ceil(need / .2) * .2);
+  const x0 = Math.max(0, S * (1 - h)), x1 = S * (1 + h), bl = Math.max(lo, x0);
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const mid = H / 2, bh = Math.min(56, H * .28), top = mid - bh / 2, bot = mid + bh / 2;
+  const narrow = W < 560;
+
+  if (svg) svg.remove();
+  svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": `Approximate ±1σ expiry range ${usd(lo)} to ${usd(hi)} around spot ${usd(S)}, strike ${usd(K)}` });
+  box.appendChild(svg);
+
+  // x axis: ~5 round ticks across the visible price span
+  const raw = (x1 - x0) / (narrow ? 4 : 6), mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => s >= raw);
+  const axisY = H - 8;
+  for (let v = Math.ceil(x0 / step) * step; v <= x1; v += step) {
+    el("line", { x1: X(v), x2: X(v), y1: top - 28, y2: bot + 28, stroke: "var(--grid)" }, svg);
+    el("text", { x: X(v), y: axisY, "text-anchor": "middle" }, svg).textContent = k(v);
+  }
+
+  // price track, then the ±1σ range on it
+  el("rect", { x: m.l, y: top, width: W - m.l - m.r, height: bh, rx: 4, fill: "var(--gray-150)" }, svg);
+  el("rect", { x: X(bl), y: top, width: X(hi) - X(bl), height: bh, rx: 4, fill: "var(--range)", "fill-opacity": .22 }, svg);
+  for (const v of [bl, hi])
+    el("line", { x1: X(v), x2: X(v), y1: top, y2: bot, stroke: "var(--range)", "stroke-width": 2 }, svg);
+
+  // spot (solid) and strike (dashed)
+  el("line", { x1: X(S), x2: X(S), y1: top - 20, y2: bot + 20, stroke: "var(--fg)", "stroke-width": 2 }, svg);
+  el("line", { x1: X(K), x2: X(K), y1: top, y2: bot + 34, stroke: "var(--strike)", "stroke-width": 2, "stroke-dasharray": "5 5" }, svg);
+
+  // direct labels: spot above, range ends just above the band, strike below
+  el("text", { class: "note", x: X(S), y: top - 28, "text-anchor": "middle" }, svg).textContent = `Spot ${usd(S)}`;
+  const edge = X(bl) - m.l < 70;   // no room left of the band: label inside it
+  el("text", { x: X(bl), y: top - 8, "text-anchor": edge ? "start" : "end", dx: edge ? 4 : -4 }, svg).textContent = narrow ? k(bl) : usd(bl);
+  el("text", { x: X(hi), y: top - 8, "text-anchor": "start", dx: 4 }, svg).textContent = narrow ? k(hi) : usd(hi);
+  el("text", { x: X(K), y: bot + 50, "text-anchor": "middle" }, svg).textContent = `STRIKE ${k(K)}`;
+}
+
+document.querySelectorAll("input").forEach(e => e.addEventListener("input", draw));
+let last = 0;
+new ResizeObserver(() => { if (box.clientWidth + innerHeight !== last) { last = box.clientWidth + innerHeight; draw(); } }).observe(document.body);
+</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC Deep ITM Call vs Spot</title>
+<link rel="stylesheet" href="../theme/ivory.min.css">
+<style>
+  :root { --grid: var(--rule); --profit: var(--olive); --spot: var(--gray-700); }
+
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); overflow: hidden; color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px;
+            color: var(--body); margin-bottom: 4px; }
+  .legend .name { margin-left: auto; font-family: var(--mono); font-size: 12px;
+                  letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .swatch { width: 22px; height: 0; border-top: 2px solid; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+  .chart .note { font-family: var(--sans); font-size: 13px; fill: var(--body); }
+  .tip { position: absolute; pointer-events: none; background: var(--bg);
+         border: 1px solid var(--gray-300); border-radius: 8px; padding: 10px 12px;
+         font-size: 13px; line-height: 1.5; color: var(--body); white-space: nowrap;
+         box-shadow: 0 4px 16px rgba(20,20,19,.08); }
+  .tip b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip .t { font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--muted); }
+  .tip .m { color: var(--muted); }
+
+</style>
+</head>
+<body>
+<div class="legend">
+  <span><i class="swatch" style="border-color:var(--spot)"></i>Long 1 BTC spot</span>
+  <span><i class="swatch" style="border-color:var(--accent)"></i>Deep ITM call, at expiry</span>
+  <span><i class="swatch" style="border-color:var(--accent);border-top-style:dashed"></i>Call, 15 days left (model)</span>
+  <span class="name" id="name"></span>
+</div>
+<div class="chart" id="chart"><div class="tip" id="tip" hidden></div></div>
+
+<script>
+/* ---- CONFIG ---- */
+const CFG = {
+  entry: 100000, strike: 70000, premium: 31000, delta0: 0.97764, iv: 0.65, days: 30,
+  // [BTC, spot P&L, spot %, call P&L at expiry, call % of premium, call model P&L 15d left, call delta 15d left]
+  // — data/btc_spot_vs_deep_itm_call_delta.csv
+  rows: [
+    [40000, -60000, -60, -31000, -100, -30999.98, 1e-05],
+    [50000, -50000, -50, -31000, -100, -30986.8, 0.00643],
+    [60000, -40000, -40, -31000, -100, -30491.26, 0.1348],
+    [65000, -35000, -35, -31000, -100, -29408.87, 0.30976],
+    [70000, -30000, -30, -31000, -100, -27322.89, 0.52627],
+    [75000, -25000, -25, -26000, -83.87, -24182.13, 0.72223],
+    [80000, -20000, -20, -21000, -67.74, -20200.27, 0.85976],
+    [85000, -15000, -15, -16000, -51.61, -15684.12, 0.93814],
+    [90000, -10000, -10, -11000, -35.48, -10886.73, 0.97576],
+    [95000, -5000, -5, -6000, -19.35, -5962.7, 0.99142],
+    [100000, 0, 0, -1000, -3.23, -988.59, 0.99722],
+    [105000, 5000, 5, 4000, 12.9, 4003.27, 0.99916],
+    [110000, 10000, 10, 9000, 29.03, 9000.89, 0.99976],
+    [115000, 15000, 15, 14000, 45.16, 14000.23, 0.99994],
+    [120000, 20000, 20, 19000, 61.29, 19000.06, 0.99998],
+    [130000, 30000, 30, 29000, 93.55, 29000, 1],
+    [140000, 40000, 40, 39000, 125.81, 39000, 1]
+  ]
+};
+/* ---------------- */
+
+const { entry: ENTRY, strike: STRIKE, premium: PREMIUM } = CFG;
+const CROSS = ENTRY - PREMIUM;   // below this, the call loses less than spot
+const usd = v => (v < 0 ? "−$" : "$") + Math.abs(Math.round(v)).toLocaleString("en-US");
+const signed = v => (v > 0 ? "+" : "") + usd(v);
+const pct = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "%";
+const k = v => (v < 0 ? "−" : "") + "$" + Math.abs(v / 1000) + "k";
+
+document.getElementById("name").textContent =
+  `ITM call K ${k(STRIKE)} · premium ${k(PREMIUM)} · Δ ${CFG.delta0.toFixed(2)}`;
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const a in attrs) n.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+const box = document.getElementById("chart"), tip = document.getElementById("tip");
+let svg;
+
+function draw() {
+  const W = Math.max(320, box.clientWidth), H = Math.max(240, innerHeight - box.offsetTop - 8);
+  const m = { l: 64, r: 16, t: 28, b: 44 };
+  const x0 = 40000, x1 = 140000, y0 = -66000, y1 = 46000;
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => m.t + (y1 - v) / (y1 - y0) * (H - m.t - m.b);
+  const narrow = W < 560;
+
+  if (svg) svg.remove();
+  svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "P&L of 1 BTC spot versus a deep in-the-money call, by BTC price" });
+  box.insertBefore(svg, tip);
+
+  // grid + y axis
+  for (let v = -60000; v <= 40000; v += 20000) {
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v),
+      stroke: v === 0 ? "var(--gray-500)" : "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: m.l - 10, y: Y(v) + 4, "text-anchor": "end" }, svg).textContent = v === 0 ? "$0" : k(v);
+  }
+  // x axis
+  for (let v = x0; v <= x1; v += narrow ? 20000 : 10000)
+    el("text", { x: X(v), y: H - m.b + 22, "text-anchor": "middle" }, svg).textContent = k(v);
+  el("text", { x: W - m.r, y: H - 4, "text-anchor": "end" }, svg).textContent = "BTC price →";
+
+  // where the call's capped loss beats spot: shade between the two lines
+  const below = CFG.rows.filter(r => r[0] <= CROSS);
+  const band = "M" + below.map(r => `${X(r[0])},${Y(r[3])}`).join(" L") + ` L${X(CROSS)},${Y(-PREMIUM)} L` +
+    below.slice().reverse().map(r => `${X(r[0])},${Y(r[1])}`).join(" L") + " Z";
+  el("path", { d: band, fill: "var(--profit)", "fill-opacity": .18 }, svg);
+
+  // strike + entry markers
+  for (const [v, label] of [[STRIKE, `STRIKE ${k(STRIKE)}`], [ENTRY, `ENTRY ${k(ENTRY)}`]]) {
+    el("line", { x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, stroke: "var(--gray-300)", "stroke-dasharray": "2 4" }, svg);
+    el("text", { x: X(v), y: m.t - 10, "text-anchor": "middle" }, svg).textContent = label;
+  }
+
+  // lines: model (dashed) under, spot, then call at expiry on top
+  const line = i => "M" + CFG.rows.map(r => `${X(r[0])},${Y(r[i])}`).join(" L");
+  el("path", { d: line(5), fill: "none", stroke: "var(--accent)", "stroke-width": 1.5,
+    "stroke-dasharray": "5 5", "stroke-opacity": .7, "stroke-linejoin": "round" }, svg);
+  el("path", { d: line(1), fill: "none", stroke: "var(--spot)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  el("path", { d: line(3), fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+
+  // direct labels where the lines diverge
+  el("text", { class: "note", x: X(x0) + 8, y: Y(-PREMIUM) - 10 }, svg)
+    .textContent = narrow ? `Call max ${k(-PREMIUM)}` : `Call: max loss ${usd(-PREMIUM)}`;
+  const s0 = CFG.rows[0];
+  el("text", { class: "note", x: X(s0[0]) + 8, y: Y(s0[1]) + 4 }, svg)
+    .textContent = narrow ? `Spot ${usd(s0[1])}` : `Spot keeps falling: ${usd(s0[1])}`;
+  const gapAt = 112000;   // just under the two lines, clear of the $0 gridline
+  el("text", { class: "note", x: X(gapAt), y: Y(gapAt - ENTRY) + 24 }, svg)
+    .textContent = narrow ? "−$1k gap" : `Call trails spot by ${usd(PREMIUM - (ENTRY - STRIKE))} (time value)`;
+
+  // hover layer
+  const cross = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--gray-500)", "stroke-width": 1, visibility: "hidden" }, svg);
+  const dots = [[1, "var(--spot)"], [3, "var(--accent)"], [5, "var(--accent)"]].map(([i, c]) =>
+    [i, el("circle", { r: i === 5 ? 4 : 5, fill: c, stroke: "var(--bg)", "stroke-width": 2, visibility: "hidden" }, svg)]);
+  const hit = el("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" }, svg);
+
+  const show = e => {
+    const r = svg.getBoundingClientRect(), sx = W / r.width;
+    const px = (e.clientX - r.left) * sx;
+    const row = CFG.rows.reduce((a, b) => Math.abs(X(b[0]) - px) < Math.abs(X(a[0]) - px) ? b : a);
+    const cx = X(row[0]);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+    for (const [i, d] of dots) { d.setAttribute("cx", cx); d.setAttribute("cy", Y(row[i])); d.setAttribute("visibility", "visible"); }
+    tip.innerHTML = `<div class="t">BTC ${usd(row[0])}</div>
+      Spot <b>${signed(row[1])}</b> <span class="m">(${pct(row[2])} of ${k(ENTRY)})</span><br>
+      Call at expiry <b>${signed(row[3])}</b> <span class="m">(${pct(row[4])} of ${k(PREMIUM)})</span><br>
+      Call, 15d left <b>${signed(row[5])}</b> <span class="m">Δ ${row[6].toFixed(2)}</span>`;
+    tip.hidden = false;
+    const left = cx / sx, flip = left > r.width - 260;
+    tip.style.left = (flip ? left - tip.offsetWidth - 14 : left + 14) + "px";
+    tip.style.top = (m.t / sx) + "px";
+  };
+  const hide = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); for (const [, d] of dots) d.setAttribute("visibility", "hidden"); };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", hide);
+}
+
+let lastW = 0;
+new ResizeObserver(() => { if (box.clientWidth + innerHeight !== lastW) { lastW = box.clientWidth + innerHeight; draw(); } }).observe(document.body);
+</script>
+</body>
+</html>

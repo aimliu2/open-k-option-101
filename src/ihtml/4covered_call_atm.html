@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC ATM Covered Call</title>
+<link rel="stylesheet" href="../theme/ivory.min.css">
+<style>
+  :root { --grid: var(--rule); --band: var(--gray-500); --spot: var(--gray-700); }
+
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); overflow: hidden; color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px;
+            color: var(--body); margin-bottom: 4px; }
+  .legend .name { margin-left: auto; font-family: var(--mono); font-size: 12px;
+                  letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .swatch { width: 22px; height: 0; border-top: 2px solid; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+  .chart .note { font-family: var(--sans); font-size: 13px; fill: var(--body); }
+  .tip { position: absolute; pointer-events: none; background: var(--bg);
+         border: 1px solid var(--gray-300); border-radius: 8px; padding: 10px 12px;
+         font-size: 13px; line-height: 1.5; color: var(--body); white-space: nowrap;
+         box-shadow: 0 4px 16px rgba(20,20,19,.08); }
+  .tip b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip .t { font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--muted); }
+  .tip .m { color: var(--muted); }
+
+</style>
+</head>
+<body>
+<div class="legend">
+  <span><i class="swatch" style="border-color:var(--accent)"></i>Covered call (spot + short call)</span>
+  <span><i class="swatch" style="border-color:var(--spot)"></i>Long 1 BTC spot</span>
+  <span><i class="swatch" style="border-color:var(--muted);border-top-style:dashed"></i>Short call alone</span>
+  <span class="name" id="name"></span>
+</div>
+<div class="chart" id="chart"><div class="tip" id="tip" hidden></div></div>
+
+<script>
+/* ---- CONFIG ---- */
+const CFG = {
+  entry: 100000, strike: 100000, premium: 3800, breakeven: 96200,
+  // [BTC at expiry, spot P&L, short call P&L, covered call P&L, covered call % of spot cost]
+  // — data/btc_atm_covered_call_payoff.csv
+  rows: [
+    [80000, -20000, 3800, -16200, -16.2],
+    [85000, -15000, 3800, -11200, -11.2],
+    [90000, -10000, 3800, -6200, -6.2],
+    [95000, -5000, 3800, -1200, -1.2],
+    [97000, -3000, 3800, 800, 0.8],
+    [100000, 0, 3800, 3800, 3.8],
+    [103000, 3000, 800, 3800, 3.8],
+    [105000, 5000, -1200, 3800, 3.8],
+    [110000, 10000, -6200, 3800, 3.8],
+    [115000, 15000, -11200, 3800, 3.8],
+    [120000, 20000, -16200, 3800, 3.8]
+  ]
+};
+/* ---------------- */
+
+const { entry: ENTRY, strike: STRIKE, premium: PREMIUM, breakeven: BE } = CFG;
+const usd = v => (v < 0 ? "−$" : "$") + Math.abs(Math.round(v)).toLocaleString("en-US");
+const signed = v => (v > 0 ? "+" : "") + usd(v);
+const pct = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + "%";
+const k = v => (v < 0 ? "−" : "") + "$" + Math.abs(v / 1000) + "k";
+
+document.getElementById("name").textContent =
+  `ATM covered call · K ${k(STRIKE)} · premium ${usd(PREMIUM)}`;
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const a in attrs) n.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+const box = document.getElementById("chart"), tip = document.getElementById("tip");
+let svg;
+
+function draw() {
+  const W = Math.max(320, box.clientWidth), H = Math.max(240, innerHeight - box.offsetTop - 8);
+  const m = { l: 64, r: 16, t: 28, b: 44 };
+  const x0 = 80000, x1 = 120000, y0 = -22000, y1 = 22000;
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => m.t + (y1 - v) / (y1 - y0) * (H - m.t - m.b);
+  const narrow = W < 560;
+
+  if (svg) svg.remove();
+  svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "P&L at expiry of an ATM covered call versus 1 BTC spot and the short call alone" });
+  box.insertBefore(svg, tip);
+
+  // grid + y axis
+  for (let v = -20000; v <= 20000; v += 10000) {
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v),
+      stroke: v === 0 ? "var(--gray-500)" : "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: m.l - 10, y: Y(v) + 4, "text-anchor": "end" }, svg).textContent = v === 0 ? "$0" : k(v);
+  }
+  // x axis
+  for (let v = x0; v <= x1; v += narrow ? 10000 : 5000)
+    el("text", { x: X(v), y: H - m.b + 22, "text-anchor": "middle" }, svg).textContent = k(v);
+  el("text", { x: W - m.r, y: H - 4, "text-anchor": "end" }, svg).textContent = "BTC price at expiry →";
+
+  // neutral gray bands (a gap between strategies, not profit/loss), split where they cross:
+  // bands between spot and covered call, split where they cross (strike + premium):
+  // covered call ahead below it (premium cushion), spot ahead above it (upside given up)
+  const CROSS = STRIKE + PREMIUM, xpt = [CROSS, CROSS - ENTRY, null, PREMIUM];
+  const band = (rows, fill, op) => el("path", { d: "M" + rows.map(r => `${X(r[0])},${Y(r[3])}`).join(" L") + " L" +
+    rows.slice().reverse().map(r => `${X(r[0])},${Y(r[1])}`).join(" L") + " Z", fill, "fill-opacity": op }, svg);
+  band([...CFG.rows.filter(r => r[0] < CROSS), xpt], "var(--band)", .18);
+  band([xpt, ...CFG.rows.filter(r => r[0] > CROSS)], "var(--band)", .09);
+
+  // strike (= entry for ATM)
+  el("line", { x1: X(STRIKE), x2: X(STRIKE), y1: m.t, y2: H - m.b, stroke: "var(--gray-300)", "stroke-dasharray": "2 4" }, svg);
+  el("text", { x: X(STRIKE), y: m.t - 10, "text-anchor": "middle" }, svg).textContent =
+    STRIKE === ENTRY ? `STRIKE = ENTRY ${k(STRIKE)}` : `STRIKE ${k(STRIKE)}`;
+
+  // lines: short call (dashed) under, spot, covered call on top
+  const line = i => "M" + CFG.rows.map(r => `${X(r[0])},${Y(r[i])}`).join(" L");
+  el("path", { d: line(2), fill: "none", stroke: "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": "5 5", "stroke-linejoin": "round" }, svg);
+  el("path", { d: line(1), fill: "none", stroke: "var(--spot)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  el("path", { d: line(3), fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+
+  // breakeven
+  el("circle", { cx: X(BE), cy: Y(0), r: 5, fill: "var(--accent)", stroke: "var(--bg)", "stroke-width": 2 }, svg);
+  el("text", { class: "note", x: X(BE) - 10, y: Y(0) - 12, "text-anchor": "end" }, svg).textContent = `Breakeven ${usd(BE)}`;
+
+  // direct labels
+  el("text", { class: "note", x: X(x1) - 4, y: Y(PREMIUM) - 10, "text-anchor": "end" }, svg)
+    .textContent = `Max profit ${signed(PREMIUM)}`;
+  const upAt = narrow ? 114000 : 113000;   // inside the widening "given up" band
+  el("text", { class: "note", x: X(upAt), y: Y((upAt - ENTRY + PREMIUM) / 2) + (narrow ? -2 : 4), "text-anchor": "middle" }, svg)
+    .textContent = narrow ? "Upside given up" : `Upside given up above ${usd(CROSS)}`;
+  const cushAt = 84000;  // just under the spot line, where the lines rise away to the right
+  el("text", { class: "note", x: X(cushAt), y: Y(cushAt - ENTRY) + 22 }, svg)
+    .textContent = narrow ? `Cushion ${signed(PREMIUM)}` : `Premium cushions losses by ${usd(PREMIUM)}`;
+
+  // hover layer
+  const cross = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--gray-500)", "stroke-width": 1, visibility: "hidden" }, svg);
+  const dots = [[2, "var(--muted)"], [1, "var(--spot)"], [3, "var(--accent)"]].map(([i, c]) =>
+    [i, el("circle", { r: i === 2 ? 4 : 5, fill: c, stroke: "var(--bg)", "stroke-width": 2, visibility: "hidden" }, svg)]);
+  const hit = el("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" }, svg);
+
+  const show = e => {
+    const r = svg.getBoundingClientRect(), sx = W / r.width;
+    const px = (e.clientX - r.left) * sx;
+    const row = CFG.rows.reduce((a, b) => Math.abs(X(b[0]) - px) < Math.abs(X(a[0]) - px) ? b : a);
+    const cx = X(row[0]);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+    for (const [i, d] of dots) { d.setAttribute("cx", cx); d.setAttribute("cy", Y(row[i])); d.setAttribute("visibility", "visible"); }
+    tip.innerHTML = `<div class="t">BTC ${usd(row[0])}</div>
+      Covered call <b>${signed(row[3])}</b> <span class="m">(${pct(row[4])} of ${k(ENTRY)})</span><br>
+      Spot <b>${signed(row[1])}</b><br>
+      Short call <b>${signed(row[2])}</b>`;
+    tip.hidden = false;
+    const left = cx / sx, flip = left > r.width - 240;
+    tip.style.left = (flip ? left - tip.offsetWidth - 14 : left + 14) + "px";
+    tip.style.top = (m.t / sx) + "px";
+  };
+  const hide = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); for (const [, d] of dots) d.setAttribute("visibility", "hidden"); };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", hide);
+}
+
+let lastW = 0;
+new ResizeObserver(() => { if (box.clientWidth + innerHeight !== lastW) { lastW = box.clientWidth + innerHeight; draw(); } }).observe(document.body);
+</script>
+</body>
+</html>

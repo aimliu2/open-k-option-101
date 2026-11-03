@@ -1,0 +1,6 @@
+{
+  "markdown.marp.themes": [
+    "./src/theme/ivory.min.css"
+  ],
+  "markdown.marp.html": "all"
+}

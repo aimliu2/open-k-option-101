@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC ITM Long Put</title>
+<link rel="stylesheet" href="../../theme/ivory.min.css">
+<style>
+  :root { --grid: var(--rule); --profit: var(--olive); --loss: var(--clay); }
+
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); overflow: hidden; color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px;
+            color: var(--body); margin-bottom: 4px; }
+  .legend .name { margin-left: auto; font-family: var(--mono); font-size: 12px;
+                  letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .swatch { width: 22px; height: 0; border-top: 2px solid; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+  .chart .note { font-family: var(--sans); font-size: 13px; fill: var(--body); }
+  .tip { position: absolute; pointer-events: none; background: var(--bg);
+         border: 1px solid var(--gray-300); border-radius: 8px; padding: 10px 12px;
+         font-size: 13px; line-height: 1.5; color: var(--body); white-space: nowrap;
+         box-shadow: 0 4px 16px rgba(20,20,19,.08); }
+  .tip b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip .t { font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--muted); }
+
+</style>
+</head>
+<body>
+<div class="legend">
+  <span><i class="swatch" style="border-color:var(--accent)"></i>Net P&amp;L</span>
+  <span><i class="swatch" style="border-color:var(--muted);border-top-style:dashed"></i>Payoff at expiry</span>
+  <span class="name" id="name"></span>
+</div>
+<div class="chart" id="chart"><div class="tip" id="tip" hidden></div></div>
+
+<script>
+/* ---- CONFIG: the only block that differs between the long call / long put pages ---- */
+const CFG = {
+  side: "put",
+  title: "ITM Long Put",
+  strike: 103000, premium: 6000,
+  rows: [ // [BTC at expiry, payoff, net P&L] — data/btc_itm_atm_otm_long_options_payoff.csv
+    [80000, 23000, 17000],[85000, 18000, 12000],[90000, 13000, 7000],[95000, 8000, 2000],[97000, 6000, 0],
+    [100000, 3000, -3000],[103000, 0, -6000],[105000, 0, -6000],[110000, 0, -6000],[115000, 0, -6000],
+    [120000, 0, -6000]
+  ]
+};
+const STRIKE = CFG.strike, PREMIUM = CFG.premium;
+/* ------------------------------------------------------------------------ */
+
+const BE = CFG.side === "call" ? STRIKE + PREMIUM : STRIKE - PREMIUM;
+const usd = v => (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("en-US");
+const signed = v => (v > 0 ? "+" : "") + usd(v);
+const k = v => (v / 1000) + "k";
+
+document.getElementById("name").textContent =
+  `${CFG.title} · K $${k(STRIKE)} · premium ${usd(PREMIUM)}`;
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const a in attrs) n.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(n);
+  return n;
+};
+
+const box = document.getElementById("chart"), tip = document.getElementById("tip");
+let svg;
+
+function draw() {
+  const W = Math.max(320, box.clientWidth), H = Math.max(240, innerHeight - box.offsetTop - 8);
+  const m = { l: 64, r: 16, t: 28, b: 44 };
+  const x0 = 80000, x1 = 120000, y0 = -8000, y1 = 22000;
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => m.t + (y1 - v) / (y1 - y0) * (H - m.t - m.b);
+
+  if (svg) svg.remove();
+  svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": `${CFG.title} payoff and net P&L versus BTC price at expiry` });
+  box.insertBefore(svg, tip);
+
+  // grid + y axis
+  for (let v = -5000; v <= 20000; v += 5000) {
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v),
+      stroke: v === 0 ? "var(--gray-500)" : "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: m.l - 10, y: Y(v) + 4, "text-anchor": "end" }, svg).textContent =
+      v === 0 ? "$0" : (v < 0 ? "−" : "") + "$" + k(Math.abs(v));
+  }
+  // x axis
+  const step = W < 560 ? 10000 : 5000;
+  for (let v = x0; v <= x1; v += step)
+    el("text", { x: X(v), y: H - m.b + 22, "text-anchor": "middle" }, svg).textContent = "$" + k(v);
+  el("text", { x: W - m.r, y: H - 4, "text-anchor": "end" }, svg).textContent = "BTC price at expiry →";
+
+  // profit / loss zones (position + label carry meaning; tint is secondary)
+  const pts = CFG.rows.map(r => [X(r[0]), Y(r[2])]);
+  const area = `M${X(x0)},${Y(0)} L` + pts.map(p => p.join(",")).join(" L") + ` L${X(x1)},${Y(0)} Z`;
+  const defs = el("defs", {}, svg);
+  const cpU = el("clipPath", { id: "up" }, defs);
+  el("rect", { x: 0, y: 0, width: W, height: Y(0) }, cpU);
+  const cpD = el("clipPath", { id: "dn" }, defs);
+  el("rect", { x: 0, y: Y(0), width: W, height: H }, cpD);
+  el("path", { d: area, fill: "var(--profit)", "fill-opacity": .16, "clip-path": "url(#up)" }, svg);
+  el("path", { d: area, fill: "var(--loss)", "fill-opacity": .14, "clip-path": "url(#dn)" }, svg);
+
+  // strike marker
+  el("line", { x1: X(STRIKE), x2: X(STRIKE), y1: m.t, y2: H - m.b,
+    stroke: "var(--gray-300)", "stroke-dasharray": "2 4" }, svg);
+  el("text", { x: X(STRIKE), y: m.t - 10, "text-anchor": "middle" }, svg).textContent = `STRIKE $${k(STRIKE)}`;
+
+  // payoff (dashed, recessive) then net P&L (accent)
+  const line = i => "M" + CFG.rows.map(r => `${X(r[0])},${Y(r[i])}`).join(" L");
+  el("path", { d: line(1), fill: "none", stroke: "var(--muted)", "stroke-width": 2,
+    "stroke-dasharray": "5 5", "stroke-linejoin": "round" }, svg);
+  el("path", { d: line(2), fill: "none", stroke: "var(--accent)", "stroke-width": 2,
+    "stroke-linejoin": "round" }, svg);
+
+  // breakeven point
+  el("circle", { cx: X(BE), cy: Y(0), r: 5, fill: "var(--accent)", stroke: "var(--bg)", "stroke-width": 2 }, svg);
+  const call = CFG.side === "call";
+  el("text", { class: "note", x: X(BE) + (call ? 10 : -10), y: Y(0) + 20,
+    "text-anchor": call ? "start" : "end" }, svg).textContent = `Breakeven ${usd(BE)}`;
+
+  // zone + cap labels
+  const profitX = call ? X(113500) : X(86500), lossX = call ? X(86000) : X(114000);
+  el("text", { class: "note", x: profitX, y: Y(2500), "text-anchor": "middle" }, svg).textContent = "Profit";
+  el("text", { class: "note", x: lossX, y: Y(-PREMIUM) + (PREMIUM > 3500 ? -8 : 20), "text-anchor": "middle" }, svg)
+    .textContent = `Max loss ${usd(-PREMIUM)}`;
+
+  // hover layer
+  const cross = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--gray-500)", "stroke-width": 1, visibility: "hidden" }, svg);
+  const dotPay = el("circle", { r: 4, fill: "var(--muted)", stroke: "var(--bg)", "stroke-width": 2, visibility: "hidden" }, svg);
+  const dotPnl = el("circle", { r: 5, fill: "var(--accent)", stroke: "var(--bg)", "stroke-width": 2, visibility: "hidden" }, svg);
+  const hit = el("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" }, svg);
+
+  const show = e => {
+    const r = svg.getBoundingClientRect(), sx = W / r.width;
+    const px = (e.clientX - r.left) * sx;
+    const row = CFG.rows.reduce((a, b) => Math.abs(X(b[0]) - px) < Math.abs(X(a[0]) - px) ? b : a);
+    const cx = X(row[0]);
+    for (const n of [cross, dotPay, dotPnl]) n.setAttribute("visibility", "visible");
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx);
+    dotPay.setAttribute("cx", cx); dotPay.setAttribute("cy", Y(row[1]));
+    dotPnl.setAttribute("cx", cx); dotPnl.setAttribute("cy", Y(row[2]));
+    tip.innerHTML = `<div class="t">BTC ${usd(row[0])}</div>
+      Net P&amp;L <b>${signed(row[2])}</b><br>Payoff <b>${usd(row[1])}</b><br>Return on premium <b>${(row[2] > 0 ? "+" : "") + (row[2] / PREMIUM * 100).toFixed(1)}%</b>`;
+    tip.hidden = false;
+    const left = cx / sx, flip = left > r.width - 180;
+    tip.style.left = (flip ? left - tip.offsetWidth - 14 : left + 14) + "px";
+    tip.style.top = (Math.min(Y(row[2]), Y(row[1])) / sx - 10) + "px";
+  };
+  const hide = () => { tip.hidden = true; for (const n of [cross, dotPay, dotPnl]) n.setAttribute("visibility", "hidden"); };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", hide);
+}
+
+let lastW = 0;
+new ResizeObserver(() => { if (box.clientWidth + innerHeight !== lastW) { lastW = box.clientWidth + innerHeight; draw(); } }).observe(document.body);
+</script>
+</body>
+</html>
