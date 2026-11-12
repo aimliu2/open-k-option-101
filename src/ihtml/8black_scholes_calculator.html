@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Black–Scholes Calculator</title>
+<link rel="stylesheet" href="../theme/ivory.min.css">
+<style>
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; }
+  label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  label output { color: var(--fg); }
+  .sym { text-transform: none; }
+  input { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 6px 10px;
+          border: 1px solid var(--gray-300); border-radius: 8px; background: var(--bg); color: var(--fg);
+          font: 14px var(--mono); font-variant-numeric: tabular-nums; }
+  input:focus { outline: none; border-color: var(--accent); }
+  input[type=range] { padding: 0; border: 0; height: 32px; accent-color: var(--accent); }
+  .bar { position: relative; display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .info { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+          border: 1px solid var(--gray-300); border-radius: 50%; font: italic 600 12px var(--serif);
+          color: var(--muted); cursor: help; }
+  .info:hover, .info:focus { outline: none; border-color: var(--accent); color: var(--accent); }
+  .tip { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 1; margin-top: 6px;
+         padding: 10px 14px; background: var(--bg); border: 1px solid var(--gray-300); border-radius: 10px;
+         box-shadow: 0 4px 16px rgba(20, 20, 19, .08); font: normal 12px/1.5 var(--sans); color: var(--muted); cursor: auto; }
+  .tip b { color: var(--body); font-weight: 600; }
+  .info:hover .tip, .info:focus .tip { display: block; }
+  button { font: 12px var(--mono); letter-spacing: .04em; color: var(--fg); background: var(--rule);
+           border: 1px solid var(--gray-300); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  #error { margin: 0; font-size: 13px; color: var(--accent); }
+  .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+  .result { padding: 12px 16px; border: 1px solid var(--rule); border-radius: 10px; }
+  .result span { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .result strong { display: block; font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 4vw, 32px);
+                   line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .call { color: var(--olive) !important; }
+  .put { color: var(--accent) !important; }
+  .stats { margin-top: 12px; overflow-x: auto; }
+  table { font-size: 14px; }
+  th { text-transform: none; letter-spacing: .02em; font-size: 12px; padding: 0 12px 6px 0; white-space: nowrap; }
+  td { padding: 6px 12px 0 0; font-family: var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+  .decay { margin-top: 16px; }
+  .decay h6 { margin: 8px 0 4px; font-size: 11px; }
+  .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .legend { display: flex; gap: 16px; font: 12px var(--mono); color: var(--muted); }
+  .legend i { display: inline-block; width: 16px; height: 2px; margin-right: 6px; vertical-align: middle; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  @media (max-width: 480px) { .results { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .charts { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="inputs">
+  <label for="spot">Spot ($)<input id="spot" type="number" min="0.000001" step="any" value="100000"></label>
+  <label for="strike">Strike ($)<input id="strike" type="number" min="0.000001" step="any" value="100000"></label>
+  <label for="days">Days to expiry<input id="days" type="number" min="0.000001" step="any" value="30"></label>
+  <label for="rate">Risk Free Rate (% cont.)<input id="rate" type="number" step="any" value="4"></label>
+  <label for="vol" hidden>Volatility (%)<input id="vol" type="number" min="0.000001" step="any" value="60"></label>
+  <label for="volRange"><span class="sym">σ</span> slider <output id="volText">60%</output><input id="volRange" type="range" min="5" max="150" step="1" value="60"></label>
+</div>
+<div class="bar">
+  <button id="reset">Reset example</button>
+  <span class="info" tabindex="0" aria-label="Model assumptions">i<span class="tip" role="tooltip"><b>Model:</b> C = S·N(d₁) − K e<sup>−rT</sup>·N(d₂); P = K e<sup>−rT</sup>·N(−d₂) − S·N(−d₁); T = days / 365. <br/>European exercise, non-dividend-paying asset, per 1 unit of underlying (e.g. 1 BTC). <br/>Assumes constant volatility and rates and frictionless markets. <br/>Theoretical prices, not executable quotes; N(d₂) is a risk-neutral probability, not a forecast.</span></span>
+  <p id="error" role="alert"></p>
+</div>
+
+<div class="results">
+  <div class="result"><span>Put premium</span><strong class="put" id="put">—</strong></div>
+  <div class="result"><span>Call premium</span><strong class="call" id="call">—</strong></div>
+</div>
+<div class="stats"><table>
+  <thead><tr>
+    <th>d₁</th>
+    <th>d₂</th>
+    <th title="N(d₁) · call delta">N(d₁) · call Δ</th>
+    <th title="N(d₂) · risk-neutral ITM probability (call)">N(d₂) · ITM prob.</th>
+    <th>Put Δ</th>
+    <th title="Put–call parity difference (should ≈ 0)">Parity diff (≈ 0)</th>
+  </tr></thead>
+  <tbody><tr>
+    <td id="d1">—</td><td id="d2">—</td><td id="nd1">—</td><td id="nd2">—</td><td id="putDelta">—</td><td id="parity">—</td>
+  </tr></tbody>
+</table></div>
+
+<div class="decay">
+  <div class="legend">
+    <span><i style="background:var(--accent)"></i>Put</span>
+    <span><i style="background:var(--olive)"></i>Call</span>
+  </div>
+  <div class="charts">
+    <div><h6>Premium vs days to expiry · spot, strike, rate, σ fixed</h6><div class="chart" id="chart"></div></div>
+    <div><h6>Premium vs spot · ±3σ one-day move, DTE, strike, rate, σ fixed</h6><div class="chart" id="spotChart"></div></div>
+  </div>
+</div>
+
+<script>
+const ids = ['spot', 'strike', 'days', 'rate', 'vol'];
+const el = id => document.getElementById(id);
+function erf(x) {
+  const sign = x < 0 ? -1 : 1, a = Math.abs(x), t = 1 / (1 + 0.3275911 * a);
+  return sign * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a));
+}
+const N = x => 0.5 * (1 + erf(x / Math.SQRT2));
+const money = x => '$' + x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function calc() {
+  const [S, K, days, rate, vol] = ids.map(id => Number(el(id).value));
+  el('volText').textContent = vol + '%';
+  if (Number.isFinite(vol) && vol >= 5 && vol <= 150) el('volRange').value = vol;
+  if (![S, K, days, rate, vol].every(Number.isFinite) || S <= 0 || K <= 0 || days <= 0 || vol <= 0) {
+    el('error').textContent = 'Enter positive spot, strike, days, and volatility, with a valid interest rate.';
+    for (const id of ['call', 'put', 'd1', 'd2', 'nd1', 'nd2', 'putDelta', 'parity']) el(id).textContent = '—';
+    el('chart').innerHTML = el('spotChart').innerHTML = '';
+    return;
+  }
+  el('error').textContent = '';
+  const T = days / 365, r = rate / 100, sigma = vol / 100, v = sigma * Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / v, d2 = d1 - v;
+  const discount = K * Math.exp(-r * T);
+  const call = S * N(d1) - discount * N(d2), put = discount * N(-d2) - S * N(-d1);
+  el('call').textContent = money(call);
+  el('put').textContent = money(put);
+  el('d1').textContent = d1.toFixed(5);
+  el('d2').textContent = d2.toFixed(5);
+  el('nd1').textContent = N(d1).toFixed(5);
+  el('nd2').textContent = N(d2).toFixed(5);
+  el('putDelta').textContent = (N(d1) - 1).toFixed(5);
+  el('parity').textContent = (call - put - (S - discount)).toFixed(7);
+  drawDecay(S, K, days, r, sigma);
+  drawSpot(S, K, days, r, sigma);
+}
+
+// Black–Scholes price at `d` days remaining; at expiry (d = 0) the premium is intrinsic value.
+function price(S, K, d, r, sigma) {
+  if (d <= 0) return { call: Math.max(S - K, 0), put: Math.max(K - S, 0) };
+  const T = d / 365, v = sigma * Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / v, d2 = d1 - v, disc = K * Math.exp(-r * T);
+  return { call: S * N(d1) - disc * N(d2), put: disc * N(-d2) - S * N(-d1) };
+}
+
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs, parent) => {
+  const n = document.createElementNS(NS, tag);
+  for (const a in attrs) n.setAttribute(a, attrs[a]);
+  parent.appendChild(n);
+  return n;
+};
+const short = v => v >= 1000 ? '$' + +(v / 1000).toFixed(1) + 'k' : '$' + +v.toFixed(v >= 10 ? 0 : 2);
+
+// Shared line plot: `pts` are {t, call, put} with t already mapped to 0..1 along x; `now` is today's t.
+function plot(box, label, pts, now, xTicks, vline) {
+  box.innerHTML = '';
+  const W = Math.max(280, box.clientWidth), H = 220, m = { l: 52, r: 12, t: 10, b: 26 };
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label }, box);
+  const yMax = Math.max(...pts.map(p => Math.max(p.call, p.put))) * 1.08 || 1;
+  const x = t => m.l + t * (W - m.l - m.r);
+  const y = v => H - m.b - (v / yMax) * (H - m.t - m.b);
+
+  for (let i = 0; i <= 4; i++) {
+    const v = yMax * i / 4;
+    svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--rule)' }, svg);
+    svgEl('text', { x: m.l - 6, y: y(v) + 4, 'text-anchor': 'end' }, svg).textContent = short(v);
+  }
+  xTicks.forEach(([t, text], i) => svgEl('text', { x: x(t), y: H - 8,
+    'text-anchor': i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle' }, svg).textContent = text);
+  if (vline && vline[0] >= 0 && vline[0] <= 1) {
+    svgEl('line', { x1: x(vline[0]), x2: x(vline[0]), y1: m.t, y2: H - m.b, stroke: 'var(--gray-300)', 'stroke-dasharray': '4 4' }, svg);
+    svgEl('text', { x: x(vline[0]) + 4, y: m.t + 10 }, svg).textContent = vline[1];
+  }
+
+  const at = (key, t) => { // value on the sampled curve at t, for the "today" dot
+    const i = Math.round(t * (pts.length - 1));
+    return pts[Math.min(pts.length - 1, Math.max(0, i))][key];
+  };
+  for (const [key, color] of [['put', 'var(--accent)'], ['call', 'var(--olive)']]) {
+    svgEl('path', { d: pts.map((p, i) => (i ? 'L' : 'M') + x(p.t).toFixed(1) + ',' + y(p[key]).toFixed(1)).join(''),
+                    fill: 'none', stroke: color, 'stroke-width': 2 }, svg);
+    svgEl('circle', { cx: x(now), cy: y(at(key, now)), r: 3.5, fill: color }, svg);
+  }
+}
+
+function drawDecay(S, K, days, r, sigma) {
+  // x runs left→right from today's days remaining down to expiry, so time flows forward.
+  const n = 200, pts = [];
+  for (let i = 0; i <= n; i++) pts.push({ t: i / n, ...price(S, K, days * (1 - i / n), r, sigma) });
+  const ticks = [0, 1, 2, 3, 4, 5].map(i => { const d = days * (1 - i / 5);
+    return [i / 5, i === 5 ? 'expiry' : +d.toFixed(d < 10 ? 1 : 0) + 'd']; });
+  plot(el('chart'), 'Put and call premium as days to expiry run down to zero', pts, 0, ticks);
+}
+
+function drawSpot(S, K, days, r, sigma) {
+  // Spot range = ±3 one-day standard deviations (lognormal), i.e. a plausible move within a single day.
+  const k = 3 * sigma * Math.sqrt(1 / 365), lo = S * Math.exp(-k), hi = S * Math.exp(k);
+  const n = 200, pts = [];
+  for (let i = 0; i <= n; i++) pts.push({ t: i / n, ...price(lo + (hi - lo) * i / n, K, days, r, sigma) });
+  const ticks = [0, 1, 2, 3, 4].map(i => [i / 4, short(lo + (hi - lo) * i / 4)]);
+  plot(el('spotChart'), 'Put and call premium across a one-day range of spot prices', pts, (S - lo) / (hi - lo), ticks,
+       [(K - lo) / (hi - lo), 'K']);
+}
+
+ids.forEach(id => el(id).addEventListener('input', calc));
+el('volRange').addEventListener('input', () => { el('vol').value = el('volRange').value; calc(); });
+el('reset').addEventListener('click', () => { [100000, 100000, 30, 4, 60].forEach((v, i) => el(ids[i]).value = v); calc(); });
+addEventListener('resize', calc);
+calc();
+</script>
+</body>
+</html>

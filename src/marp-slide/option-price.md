@@ -7,54 +7,51 @@ theme: ivory
 
 ---
 
-# IV implied volatility
-### is an annualized volatility parameter, given option have a remaining lifetime $T$
+# Black-Sholes Model
 
 $$
-\boxed{\sigma_T=\text{IV}\sqrt{T}}
+C = SN(d_1)-Ke^{-rT}N(d_2) \ \ \boxed{P = Ke^{-rT}N(-d_2)-SN(-d_1)}
+$$
+
+where
+$$
+\begin{aligned}
+d_1 &= \frac{ln(S/K)+(r+\sigma^2/2)T}{\sigma \sqrt{T}} \\
+d_2 &= d_1 - \sigma \sqrt{T}
+\end {aligned}
 $$
 
 ---
 
-### Example: BTC at $100,000, IV = 60%, Option expires in 30 days
-
-The variance of the cumulative log return over those 30 days is:
-
-$$
-\begin{aligned}
-\operatorname{Var}\left[\ln\left(\frac{S_{30}}{S_0}\right)\right]
-&=\sigma^2T\\
-&=0.60^2\times\frac{30}{365}\\
-&\approx0.02959
-\end{aligned}
-$$
-
-$$
-\begin{aligned}
-\sigma_{30}
-&=\sqrt{0.02959}\\
-&\approx0.172\\
-&=\boxed{17.2\%}
-\end{aligned}
-$$
-
-$$
-\sigma_T = 60\%\sqrt{\frac{30}{365}}=17.2\%
-$$
-
----
-<!-- _class : lead -->
 <div>
-<iframe src="../ihtml/7btc_iv_range.html"" width="720" height="480" style="border:0" title="Long put payoff chart"></iframe>
+<iframe src="../ihtml/8black_scholes_calculator.html" width="1024" height="600" style="border:0" title="black-scholes"></iframe>
 </div>
 
+--- 
+## Black-Sholes PDE
+
+$$
+
+\frac{\partial V}{\partial t}
++\frac12\sigma^2S^2\frac{\partial^2V}{\partial S^2}
++rS\frac{\partial V}{\partial S}
+-rV=0
+\ \
+\boxed{
+\Theta=
+-\frac12\sigma^2S^2\Gamma
+-rS\Delta+rV
+}
+$$
+
+|Greek|	Mathematical definition	|Interpretation|
+|--|--|--|
+|Delta $\Delta$|	$\frac{\partial V}{\partial S}$	|Price sensitivity|
+|Gamma $\Gamma$|	$\frac{\partial^2 V}{\partial S^2}$	|Delta sensitivity|
+Theta $\Theta$|	$\frac{\partial V}{\partial t}$	|Time sensitivity|
+|Vega $\nu$	|$\frac{\partial V}{\partial \sigma}$|	Volatility sensitivity|
+|Rho $\rho$	|$\frac{\partial V}{\partial r}$	|Interest-rate sensitivity|
+
 ---
 
-# What does it mean as an option seller?
-||Low IV	|High IV|
-|--|--|--|
-|Premium collected|	Smaller|	Larger|
-|Priced-in movement risk|	Lower	|Higher|
-|Short option exposure|	Less premium cushion	|More premium cushion, but greater priced-in uncertainty|
-|Automatically a good time to sell?|	No|	No|
 

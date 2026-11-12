@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normal PDF vs CDF</title>
+</head>
+<body>
+<h1>Normal Distribution: Bell Curve vs CDF</h1>
+<p>Standard normal Z ~ N(0, 1). Drag the threshold x to see the probability accumulated to its left.</p>
+
+<p>
+  <label for="slider">Threshold x: <output id="xval">0.00σ</output></label><br>
+  <input id="slider" type="range" min="-4" max="4" step="0.01" value="0">
+</p>
+<p><strong id="prob">50.00%</strong><br><code id="formula">N(0.00) = P(Z ≤ 0.00) = 0.500000</code></p>
+
+<ul>
+  <li>Orange line: PDF φ(z), left axis. Shaded area = P(Z ≤ x).</li>
+  <li>Green line: CDF N(z), right axis. Height at x = N(x).</li>
+</ul>
+<svg id="chart" viewBox="0 0 760 320" width="100%" role="img" aria-label="Standard normal density with shaded cumulative area, overlaid with the cumulative distribution curve"></svg>
+<p><small>At +4σ: 99.9968% ≈ 100.00%. At −4σ: 0.0032% ≈ 0.00%.</small></p>
+
+<script>
+const pdf = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+function erf(x) {
+  const sign = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a);
+  return sign * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a));
+}
+const cdf = z => (1 + erf(z / Math.SQRT2)) / 2;
+
+const ns = 'http://www.w3.org/2000/svg';
+const L = 48, R = 712, T = 12, B = 280;
+const xx = z => L + (z + 4) / 8 * (R - L);
+const yp = v => B - v / .4 * (B - T);    // PDF scale, left axis 0 – 0.4 (peak 0.399), so its 0.1 steps share gridlines with CDF's 25% steps
+const yc = v => B - v * (B - T);         // CDF scale, right axis 0 – 100%
+const $ = id => document.getElementById(id);
+
+// SVG presentation attributes (not CSS), so the chart draws correctly with no stylesheet.
+const PDF = '#D97757', CDF = '#788C5D';
+const GRID = { stroke: '#E0E0E0' };
+const AXIS = { stroke: '#999999' };
+const TICK = { 'font-size': 12, fill: '#666666' };
+const MARK = { stroke: '#333333', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' };
+
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(ns, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  parent.appendChild(n);
+  return n;
+}
+const path = pts => pts.map(([x, y], i) => (i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2)).join(' ');
+
+function axes(svg) {
+  for (let z = -4; z <= 4; z++) {
+    el('line', { x1: xx(z), y1: T, x2: xx(z), y2: B, ...GRID }, svg);
+    el('text', { x: xx(z), y: B + 22, 'text-anchor': 'middle', ...TICK }, svg).textContent = z;
+  }
+  for (let i = 0; i <= 4; i++) {
+    const y = yc(i / 4);
+    el('line', { x1: L, y1: y, x2: R, y2: y, ...GRID }, svg);
+    el('text', { x: L - 8, y: y + 4, 'text-anchor': 'end', ...TICK }, svg).textContent = (i * .1).toFixed(1);
+    el('text', { x: R + 8, y: y + 4, 'text-anchor': 'start', ...TICK }, svg).textContent = i * 25 + '%';
+  }
+  el('line', { x1: L, y1: B, x2: R, y2: B, ...AXIS }, svg);
+  el('line', { x1: L, y1: T, x2: L, y2: B, ...AXIS }, svg);
+  el('line', { x1: R, y1: T, x2: R, y2: B, ...AXIS }, svg);
+}
+
+function render() {
+  const x = Number($('slider').value), p = cdf(x), svg = $('chart');
+  $('xval').textContent = (x >= 0 ? '+' : '') + x.toFixed(2) + 'σ';
+  $('prob').textContent = (p * 100).toFixed(2) + '%';
+  $('formula').textContent = `N(${x.toFixed(2)}) = P(Z ≤ ${x.toFixed(2)}) = ${p.toFixed(6)}`;
+
+  svg.replaceChildren();
+  axes(svg);
+  const vals = Array.from({ length: 401 }, (_, i) => -4 + i * .02);
+  const shaded = vals.filter(z => z < x).concat(x);
+  el('path', { d: path([[xx(-4), B], ...shaded.map(z => [xx(z), yp(pdf(z))]), [xx(x), B]]) + ' Z', fill: PDF, 'fill-opacity': .14 }, svg);
+  el('path', { d: path(vals.map(z => [xx(z), yp(pdf(z))])), fill: 'none', stroke: PDF, 'stroke-width': 2.5 }, svg);
+  el('path', { d: path(vals.map(z => [xx(z), yc(cdf(z))])), fill: 'none', stroke: CDF, 'stroke-width': 2.5 }, svg);
+
+  el('line', { x1: xx(x), y1: T, x2: xx(x), y2: B, ...MARK }, svg);
+  el('line', { x1: xx(x), y1: yc(p), x2: R, y2: yc(p), ...MARK }, svg);   // read N(x) off the right axis
+  el('circle', { cx: xx(x), cy: yp(pdf(x)), r: 4.5, fill: PDF }, svg);
+  el('circle', { cx: xx(x), cy: yc(p), r: 5, fill: CDF }, svg);
+}
+$('slider').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>

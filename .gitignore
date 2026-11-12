@@ -9,6 +9,7 @@ MEMORY.md
 # src
 .DS_store
 data
+data-spot
 test
 src/marp-inline-slide
 

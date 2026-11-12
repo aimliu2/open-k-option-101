@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC Credit Spreads vs Short Options</title>
+<link rel="stylesheet" href="../theme/ivory.min.css">
+<style>
+  :root { --single: var(--gray-700); --spread: var(--accent); --gain: var(--olive); --loss: #B5462F; }
+  body {
+    margin: 0; padding: 4px 8px; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { margin: 0; font-size: 26px; }
+  h2 { margin: 0; font-size: 20px; }
+  p { margin: 6px 0 0; font-size: 14px; }
+  .lede { margin-top: 4px; }
+  /* Always two columns side by side; minmax(0, …) lets each column shrink instead of overflowing. */
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
+  .panel { min-width: 0; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font: 12px var(--mono); color: var(--muted); }
+  .legend i { display: inline-block; width: 16px; height: 2px; margin-right: 6px; vertical-align: middle; }
+  svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+  svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  label { display: block; margin-top: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+          text-transform: uppercase; color: var(--muted); }
+  label output { color: var(--fg); }
+  input[type=range] { display: block; width: 100%; height: 28px; margin: 2px 0 0; accent-color: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+  .stat { padding: 8px 12px; background: var(--rule); border-radius: 8px; }
+  .stat small { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .stat strong { font-family: var(--serif); font-weight: 500; font-size: clamp(18px, 2.4vw, 24px); font-variant-numeric: tabular-nums; }
+  .gain { color: var(--gain) !important; }
+  .loss { color: var(--loss) !important; }
+  .scroll { overflow-x: auto; margin-top: 10px; }
+  table { font-size: 13px; }
+  th { padding: 0 8px 6px 0; font-size: 11px; white-space: nowrap; }
+  td { padding: 6px 8px 6px 0; font-variant-numeric: tabular-nums; }
+  th:last-child, td:last-child { text-align: right; }
+  .summary { font-size: 13px; }
+  .note { margin-top: 12px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+<h1>BTC Credit Spreads vs Standalone Short Options</h1>
+<p class="lede">Interactive <strong>expiration profit/loss</strong> based on illustrative CSV quotes. BTC entry $100,000 · 30-day options · 1 BTC per contract · cash-settled · excludes fees and margin costs. Selling earns the bid; buying costs the ask.</p>
+
+<div class="grid">
+  <div class="panel">
+    <h2>1. Bear Call Credit Spread vs Short Call</h2>
+    <div class="scroll"><table>
+      <tr><th>Leg</th><th>Premium</th></tr>
+      <tr><td>Sell $100,000 call (bid)</td><td class="gain">+$3,800</td></tr>
+      <tr><td>Buy $103,000 call (ask)</td><td class="loss">−$2,500</td></tr>
+      <tr><td><strong>Net credit</strong></td><td><strong>+$1,300</strong></td></tr>
+    </table></div>
+    <div class="legend">
+      <span><i style="background:var(--spread)"></i>Bear call credit spread</span>
+      <span><i style="background:var(--single)"></i>Short call alone</span>
+    </div>
+    <svg id="call" viewBox="0 0 520 300" role="img" aria-label="Expiration P&L of a bear call credit spread versus a short call"></svg>
+    <label for="callSlider">BTC at expiry <output id="callPrice"></output></label>
+    <input id="callSlider" type="range" min="80000" max="120000" step="250" value="100000">
+    <div class="stats">
+      <div class="stat"><small>Credit spread P&amp;L</small><strong id="callSpread"></strong></div>
+      <div class="stat"><small>Short call P&amp;L</small><strong id="callShort"></strong></div>
+    </div>
+    <p class="summary"><strong>Spread:</strong> max profit +$1,300 · max loss −$1,700 · breakeven $101,300.<br><strong>Short call:</strong> max profit +$3,800 · unlimited theoretical loss · breakeven $103,800.</p>
+  </div>
+
+  <div class="panel">
+    <h2>2. Bull Put Credit Spread vs Short Put</h2>
+    <div class="scroll"><table>
+      <tr><th>Leg</th><th>Premium</th></tr>
+      <tr><td>Sell $100,000 put (bid)</td><td class="gain">+$3,800</td></tr>
+      <tr><td>Buy $97,000 put (ask)</td><td class="loss">−$1,800</td></tr>
+      <tr><td><strong>Net credit</strong></td><td><strong>+$2,000</strong></td></tr>
+    </table></div>
+    <div class="legend">
+      <span><i style="background:var(--spread)"></i>Bull put credit spread</span>
+      <span><i style="background:var(--single)"></i>Short put alone</span>
+    </div>
+    <svg id="put" viewBox="0 0 520 300" role="img" aria-label="Expiration P&L of a bull put credit spread versus a short put"></svg>
+    <label for="putSlider">BTC at expiry <output id="putPrice"></output></label>
+    <input id="putSlider" type="range" min="80000" max="120000" step="250" value="100000">
+    <div class="stats">
+      <div class="stat"><small>Credit spread P&amp;L</small><strong id="putSpread"></strong></div>
+      <div class="stat"><small>Short put P&amp;L</small><strong id="putShort"></strong></div>
+    </div>
+    <p class="summary"><strong>Spread:</strong> max profit +$2,000 · max loss −$1,000 · breakeven $98,000.<br><strong>Short put:</strong> max profit +$3,800 · worst-case loss −$96,200 if BTC reaches zero · breakeven $96,200.</p>
+  </div>
+</div>
+
+<p class="note">At expiration, the short call's loss is theoretically unbounded as BTC rises. A short put's loss is large but bounded because BTC cannot fall below zero. Charts show only the $80,000–$120,000 range. A credit received upfront is not immediate realized profit: the position retains a liability until closed or expired. Real margin requirements and spread recognition depend on the exchange.</p>
+
+<script>
+const money = n => (n < 0 ? '−' : '') + '$' + Math.abs(n).toLocaleString('en-US');
+const config = {
+  call: { short: s => 3800 - Math.max(s - 100000, 0),
+          spread: s => 1300 - Math.max(s - 100000, 0) + Math.max(s - 103000, 0) },
+  put:  { short: s => 3800 - Math.max(100000 - s, 0),
+          spread: s => 2000 - Math.max(100000 - s, 0) + Math.max(97000 - s, 0) },
+};
+
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  parent.appendChild(n);
+  return n;
+}
+
+// Fixed viewBox; the SVG scales to its column, so no resize handling is needed.
+const W = 520, H = 300, L = 44, R = 8, T = 10, B = 28;
+const minX = 80000, maxX = 120000, minY = -18000, maxY = 6000;
+const X = s => L + (s - minX) / (maxX - minX) * (W - L - R);
+const Y = v => T + (maxY - v) / (maxY - minY) * (H - T - B);
+const cap = s => s[0].toUpperCase() + s.slice(1);
+
+function draw(kind) {
+  const svg = $(kind), cfg = config[kind], price = +$(kind + 'Slider').value;
+  svg.replaceChildren();
+
+  for (let v = -15000; v <= 5000; v += 5000) {
+    el('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: v === 0 ? 'var(--gray-500)' : 'var(--rule)',
+                 'stroke-dasharray': v === 0 ? '5 4' : 'none' }, svg);
+    el('text', { x: L - 6, y: Y(v) + 4, 'text-anchor': 'end' }, svg).textContent = v / 1000 + 'k';
+  }
+  for (let s = minX; s <= maxX; s += 10000)
+    el('text', { x: X(s), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = s / 1000 + 'k';
+
+  const lines = [['short', 'var(--single)'], ['spread', 'var(--spread)']];
+  for (const [name, color] of lines) {
+    let d = '';
+    for (let s = minX; s <= maxX; s += 100) d += (s === minX ? 'M' : 'L') + X(s).toFixed(1) + ',' + Y(cfg[name](s)).toFixed(1);
+    el('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.2, 'stroke-linejoin': 'round' }, svg);
+  }
+
+  el('line', { x1: X(price), x2: X(price), y1: T, y2: H - B, stroke: 'var(--gray-500)', 'stroke-dasharray': '4 4' }, svg);
+  for (const [name, color] of lines) el('circle', { cx: X(price), cy: Y(cfg[name](price)), r: 4, fill: color }, svg);
+
+  $(kind + 'Price').textContent = money(price);
+  for (const name of ['short', 'spread']) {
+    const out = $(kind + cap(name)), v = cfg[name](price);
+    out.textContent = (v >= 0 ? '+' : '') + money(v);
+    out.className = v >= 0 ? 'gain' : 'loss';
+  }
+}
+
+for (const kind of ['call', 'put']) {
+  $(kind + 'Slider').addEventListener('input', () => draw(kind));
+  draw(kind);
+}
+</script>
+</body>
+</html>
