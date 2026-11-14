@@ -1,7 +1,8 @@
 # BTC candlesticks and option payoff charts
 
-Eight offline pages share the same daily BTCUSDT snapshot. The four single-leg
-pages use one renderer; the four vertical spreads use a separate shared renderer.
+Nine offline source pages share the same daily BTCUSDT snapshot. The four single-leg
+pages use one renderer; the four fixed vertical spreads and combined explorer use
+a separate shared renderer.
 
 | Position | Page |
 | --- | --- |
@@ -176,17 +177,49 @@ initial credit as realized profit. The info tooltip explains the retained
 liability until closing or expiry and that illustrative premiums exclude bid/ask
 differences, fees and margin costs. Touch inspection persists on finger release.
 
+## Combined vertical spread explorer
+
+The [editable explorer](../../src/ihtml/ch1-v-spread/btcusdt-ohlc-vertical-spreads.html)
+combines all four spread strategies in one chart. Its top bar has four visible
+buttons: Call debit, Put debit, Call credit and Put credit. The active button is
+highlighted and exposes its pressed state to assistive technology. Tab reaches
+each button; Enter or Space selects a mode without reloading the page.
+
+Each mode remembers its own Buy/Sell strikes for the current page session.
+First visits use that strategy's existing defaults; Reset strikes resets only
+the current mode. Show legs is shared across modes. Historical inspection and
+an active hypothetical expiry price are retained and repriced when switching.
+Refresh starts a new session. The four original pages remain fixed-strategy pages.
+
+The explorer retains the 1024×576 cap and fits all four buttons at that size.
+On narrow screens the navigation wraps and the page can scroll vertically;
+the chart retains horizontal scrolling to reach both strike controls.
+
+Export a single offline HTML file, with CSS, scripts and snapshot embedded:
+
+```sh
+node src/libs/build-vertical-spreads.mjs
+```
+
+The result is [wiki/refpages/btcusdt-vertical-spreads.html](../../wiki/refpages/btcusdt-vertical-spreads.html),
+linked from the wiki index. Edit the source shell or shared assets, then rebuild;
+do not edit the generated export. Export uses the embedded snapshot and needs
+no access to the external CSV. The page works directly from disk or when only
+the `wiki/` directory is hosted, without runtime asset requests.
+
 ## Regenerating the snapshot
 
 Run from the repository root:
 
 ```sh
 node src/libs/build-btc-ohlc.mjs
+node src/libs/build-vertical-spreads.mjs
 ```
 
 The generator reads the CSV identified in its source, validates the last 128 daily
-bars, and updates the embedded data and CSV SHA-256 in all eight pages. It validates
-every page before writing any. No dependency installation is required.
+bars, and updates the embedded data and CSV SHA-256 in all nine source pages. It
+validates every page before writing any. Then rebuild the combined reference export
+so its snapshot and assets stay current. No dependency installation is required.
 
 For offline slide embedding, use the existing
 [iframe bundling workflow](inline-frames.md); it inlines the local chart script

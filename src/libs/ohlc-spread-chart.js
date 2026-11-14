@@ -4,8 +4,19 @@
   const $ = id => document.getElementById(id);
   const { bars, source, sha256 } = JSON.parse($('ohlc-data').textContent);
   const spot = bars.at(-1).close;
-  const model = BtcVerticalSpread.create(document.body.dataset.optionType, spot, document.body.dataset.spreadType || 'debit');
+  let model = BtcVerticalSpread.create(document.body.dataset.optionType, spot, document.body.dataset.spreadType || 'debit');
   let buyIndex = model.defaults.buy, sellIndex = model.defaults.sell;
+  const modeButtons = document.body.dataset.modeSwitcher === 'true'
+    ? [...document.querySelectorAll('[data-spread-mode]')] : [];
+  const modes = {
+    'call-debit': { optionType: 'call', spreadType: 'debit', heading: 'Bull call · debit spread' },
+    'put-debit': { optionType: 'put', spreadType: 'debit', heading: 'Bear put · debit spread' },
+    'call-credit': { optionType: 'call', spreadType: 'credit', heading: 'Bear call · credit spread' },
+    'put-credit': { optionType: 'put', spreadType: 'credit', heading: 'Bull put · credit spread' }
+  };
+  let activeMode = `${model.isCall ? 'call' : 'put'}-${model.spreadType}`;
+  const savedPairs = new Map();
+  const wheelState = { buy: { lastAt: -Infinity, lastDirection: 0 }, sell: { lastAt: -Infinity, lastDirection: 0 } };
   let selected = bars.length - 1, visibleStart = 0, hoverPrice = null;
   let selectBar = () => {}, showHover = () => {}, hideHover = () => {};
   const chart = $('chart'), controls = $('strike-controls');
@@ -63,7 +74,7 @@
       slider.setAttribute('aria-valuetext', `${integer(c.strike)} USDT, ${leg} ${model.isCall ? 'call' : 'put'}, premium ${integer(c.premium)} USDT. ${validRange}`);
     }
     $('constraint-message').textContent = pos.width === model.step ? 'Minimum spread width: 1,000 USDT' : '';
-    for (const [id, value] of [[model.isCredit ? 'net-credit' : 'net-debit', pos.amount], ['spread-width', pos.width], ['max-loss', pos.maxLoss], ['max-profit', pos.maxProfit], ['breakeven', pos.breakeven]]) $(id).textContent = money(value);
+    for (const [id, value] of [[$('net-amount') ? 'net-amount' : model.isCredit ? 'net-credit' : 'net-debit', pos.amount], ['spread-width', pos.width], ['max-loss', pos.maxLoss], ['max-profit', pos.maxProfit], ['breakeven', pos.breakeven]]) $(id).textContent = money(value);
     $('chart-mode').textContent = `1 BTC / leg · Spot ${integer(spot)}`;
     $('date-range').textContent = `BTCUSDT · 1 day · ${visible[0].date} — ${bars.at(-1).date} UTC · ${count} bars`;
 
@@ -214,21 +225,22 @@
       const moves = { ArrowUp: index + 1, ArrowRight: index + 1, ArrowDown: index - 1, ArrowLeft: index - 1, PageUp: index + 2, PageDown: index - 2, Home: -5, End: 5 };
       if (event.key in moves) { event.preventDefault(); change(leg, moves[event.key]); }
     });
-    let lastAt = -Infinity, lastDirection = 0;
+    const gesture = wheelState[leg];
     slider.addEventListener('wheel', event => {
       if (event.ctrlKey || !event.deltaY) return;
       event.preventDefault();
       const direction = event.deltaY < 0 ? 1 : -1;
-      if (event.timeStamp - lastAt > 180 || direction !== lastDirection)
+      if (event.timeStamp - gesture.lastAt > 180 || direction !== gesture.lastDirection)
         change(leg, (leg === 'buy' ? buyIndex : sellIndex) + direction);
-      lastAt = event.timeStamp; lastDirection = direction;
+      gesture.lastAt = event.timeStamp; gesture.lastDirection = direction;
     }, { passive: false });
   }
   $('reset-spread').addEventListener('click', () => { buyIndex = model.defaults.buy; sellIndex = model.defaults.sell; draw(); });
   $('show-legs').addEventListener('change', draw);
   chart.addEventListener('pointerleave', event => {
     // Touch sends pointerleave when the finger lifts; retain the tapped price.
-    if (event.pointerType !== 'touch') hideHover();
+    const withinPage = modeButtons.length && event.relatedTarget instanceof Element && event.relatedTarget.closest('.spread-page');
+    if (event.pointerType !== 'touch' && !withinPage) hideHover();
   });
   chart.addEventListener('keydown', event => {
     if (event.target !== chart) return;
@@ -240,6 +252,46 @@
     info.addEventListener('keydown', event => { if (event.key === 'Escape') info.classList.add('dismissed'); });
     for (const event of ['pointerenter', 'focusin', 'click']) info.addEventListener(event, () => info.classList.remove('dismissed'));
   }
+  function updateModeText() {
+    const optionType = model.isCall ? 'call' : 'put';
+    const heading = modes[activeMode].heading;
+    document.querySelector('h1').textContent = heading;
+    document.title = `BTCUSDT · ${heading}`;
+    document.body.dataset.optionType = optionType;
+    document.body.dataset.spreadType = model.spreadType;
+    for (const leg of ['buy', 'sell'])
+      document.querySelector(`label[for="${leg}-strike"]`).textContent = `${leg === 'buy' ? 'Buy' : 'Sell'} ${optionType}`;
+    $('net-amount-label').textContent = model.isCredit ? 'Net credit' : 'Net debit';
+    chart.setAttribute('aria-label', `Daily BTCUSDT and ${model.strategy} chart. Use left and right arrows to inspect bars; Home and End jump to the first and last visible bar.`);
+    controls.setAttribute('aria-label', `${model.strategy} strikes`);
+    document.querySelector('.info button').setAttribute('aria-label', `About this ${model.strategy}`);
+    $('model-info').textContent = `Buy one ${optionType} and sell one ${optionType}, same expiry and 1 BTC per leg. `
+      + (model.isCredit ? 'Net credit is received initially; liability remains until closing or expiry. ' : 'Net debit is paid initially. ')
+      + 'Illustrative premiums follow the same chain as the single-option charts; they exclude bid/ask differences, fees and margin costs. '
+      + 'These curves show expiration P&L, not option prices before expiry. Candles are historical context; the hover price is a hypothetical expiry price. '
+      + 'Use the Buy and Sell sliders to move strikes in 1,000-USDT steps. Equal or crossed strikes are blocked. Show legs reveals each leg’s net P&L.';
+    document.querySelector('.info').classList.add('dismissed');
+    for (const button of modeButtons)
+      button.setAttribute('aria-pressed', String(button.dataset.spreadMode === activeMode));
+  }
+  for (const button of modeButtons) {
+    button.addEventListener('click', () => {
+      const nextMode = button.dataset.spreadMode;
+      if (nextMode === activeMode) return;
+      savedPairs.set(activeMode, { buy: buyIndex, sell: sellIndex });
+      const config = modes[nextMode];
+      model = BtcVerticalSpread.create(config.optionType, spot, config.spreadType);
+      activeMode = nextMode;
+      const pair = savedPairs.get(activeMode) || model.defaults;
+      buyIndex = pair.buy; sellIndex = pair.sell;
+      for (const gesture of Object.values(wheelState)) {
+        gesture.lastAt = -Infinity; gesture.lastDirection = 0;
+      }
+      updateModeText();
+      draw();
+    });
+  }
+  if (modeButtons.length) updateModeText();
   new ResizeObserver(draw).observe(chart);
   draw();
 })();

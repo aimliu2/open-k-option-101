@@ -69,3 +69,24 @@ main.spread-page {
   .spread-page #option-readout h2 { font-size: 21px; }
   .spread-page .tip { width: min(340px, calc(100vw - 24px)); }
 }
+
+/* The explorer keeps four explicit mode choices in its top navigation bar. */
+[data-mode-switcher="true"] header { gap: 10px; }
+[data-mode-switcher="true"] header > div:first-child { min-width: 0; }
+[data-mode-switcher="true"] .spread-modes { display: flex; gap: 4px; flex-shrink: 0; }
+[data-mode-switcher="true"] .spread-modes button { min-height: 30px; padding: 4px 9px; font-size: 11px; white-space: nowrap; }
+[data-mode-switcher="true"] .spread-modes button[aria-pressed="true"] { background: #16766a; color: #fff; border-color: #16766a; box-shadow: inset 0 -3px 0 #0b4d44; font-weight: 750; }
+[data-mode-switcher="true"] .spread-modes button[data-spread-mode$="-credit"] { background: #f6eae5; color: #8f392e; border-color: #d8aea2; }
+[data-mode-switcher="true"] .spread-modes button[data-spread-mode$="-credit"][aria-pressed="true"] { background: #a94438; color: #fff; border-color: #a94438; box-shadow: inset 0 -3px 0 #742d25; }
+[data-mode-switcher="true"] .spread-modes button[data-spread-mode$="-credit"]:focus-visible { outline-color: #a94438; }
+[data-mode-switcher="true"] .header-actions { gap: 6px; }
+@media (max-width: 900px) {
+  [data-mode-switcher="true"] .chart-mode { display: none; }
+}
+@media (max-width: 700px) {
+  [data-mode-switcher="true"] .spread-page { height: auto; min-height: min(100dvh, 576px); grid-template-rows: auto 22px 24px 280px auto auto; }
+  [data-mode-switcher="true"] header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  [data-mode-switcher="true"] .spread-modes { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; }
+  [data-mode-switcher="true"] .header-actions { grid-column: 2; grid-row: 1; }
+  [data-mode-switcher="true"] .spread-modes button { flex: 1; }
+}

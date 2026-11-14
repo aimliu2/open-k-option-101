@@ -1,4 +1,4 @@
-// Regenerate all eight option pages' embedded 128-bar snapshots. No packages needed.
+// Regenerate all nine option pages' embedded 128-bar snapshots. No packages needed.
 // Run: node src/libs/build-btc-ohlc.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -28,6 +28,7 @@ const pages = [
   ...['lcall', 'lput', 'scall', 'sput'].map(strategy => `ch0-intro/btcusdt-ohlc-${strategy}.html`),
   ...['call', 'put'].map(type => `ch1-v-spread/btcusdt-ohlc-debit-${type}-spread.html`),
   ...['call', 'put'].map(type => `ch1-v-spread/btcusdt-ohlc-credit-${type}-spread.html`),
+  'ch1-v-spread/btcusdt-ohlc-vertical-spreads.html',
 ];
 const outputs = pages.map(page => {
   const output = new URL(`../ihtml/${page}`, import.meta.url);
