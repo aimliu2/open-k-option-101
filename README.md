@@ -1,5 +1,6 @@
 # open-k-option-101
 Open knowledge. Intro to options and what it is
+[https://aimliu2.github.io/open-k-option-101/](https://aimliu2.github.io/open-k-option-101/)
 
 ## Quick start — preview and export the Marp slides
 

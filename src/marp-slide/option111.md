@@ -3,17 +3,30 @@ marp: true
 theme: ivory
 ---
 
-# Option 104
-## Debit and Credit Spread
+# Option 111
+## Debit Spread
 
 ---
 
-## Debit Spread
-### Bull call<u>buy ATM call + sell OTM call</u> · Bear put<u> buy ATM put + sell OTM put</u>
+### Bull call <u>buy ATM call + sell OTM call</u>
+<div>
+<iframe src="../ihtml/ch1-v-spread/btcusdt-ohlc-debit-call-spread.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
+</div>
+
+---
+
+### Bear put <u> buy ATM put + sell OTM put</u>
+<div>
+<iframe src="../ihtml/ch1-v-spread/btcusdt-ohlc-debit-put-spread.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
+</div>
+
+---
+
+### Debit Spread was still mild directional
 
 
 <div>
-<iframe src="../ihtml/10debit_spreads_vs_long_options.html" width="720" height="480" style="border:0" title="Long put payoff chart"></iframe>
+<iframe src="../ihtml/10debit_spreads_vs_long_options.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
 </div>
 
 ---
@@ -44,26 +57,5 @@ Pricing risk: BTC moves correctly, but the spread doesn't appreciate as much as 
 |--|--|--|
 |$100k call|	$4,600|	$4,900|
 |$103k call|	$3,000	|$3,300|
----
-
-## Credit Spread
-### Bull Put<u>short ATM call + long OTM call</u> · Bear Call <u>short ATM put + long OTM put</u>
-
-<div>
-<iframe src="../ihtml/11credit_spreads_vs_short_options.html" width="720" height="480" style="border:0" title="Long put payoff chart"></iframe>
-</div>
-
----
-
-## Advantage over short call/put
-1. Maximum loss is capped
-2. Reduced exposure to extreme moves and gamma squeezes
-$$
-\Delta_{\text{spread}}
-=
--\Delta_{\text{short call}}
-+\Delta_{\text{long call}}
-$$
-
 
 

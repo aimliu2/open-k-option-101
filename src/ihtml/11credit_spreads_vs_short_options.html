@@ -7,94 +7,167 @@
 <link rel="stylesheet" href="../theme/ivory.min.css">
 <style>
   :root { --single: var(--gray-700); --spread: var(--accent); --gain: var(--olive); --loss: #B5462F; }
+  * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 4px 8px; background: var(--bg); color: var(--fg);
-    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    margin: 0; padding: 10px 12px; height: 100vh; min-height: 480px;
+    display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px;
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 14px; line-height: 1.4;
     -webkit-font-smoothing: antialiased;
   }
   h1 { margin: 0; font-size: 26px; }
   h2 { margin: 0; font-size: 20px; }
-  p { margin: 6px 0 0; font-size: 14px; }
-  .lede { margin-top: 4px; }
-  /* Always two columns side by side; minmax(0, …) lets each column shrink instead of overflowing. */
-  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
-  .panel { min-width: 0; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 10px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font: 12px var(--mono); color: var(--muted); }
+  p { margin: 4px 0 0; font-size: 13px; }
+  code { font-size: 11px; overflow-wrap: anywhere; }
+  .lede { color: var(--muted); }
+  .title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+  .panel {
+    min-width: 0; min-height: 0; padding: 10px 12px; border: 1px solid var(--gray-300); border-radius: 10px;
+    display: grid; grid-template-rows: auto auto minmax(120px, 1fr) auto auto auto auto;
+  }
+  .setup { font-size: 12px; color: var(--body); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; font: 11px var(--mono); color: var(--muted); }
   .legend i { display: inline-block; width: 16px; height: 2px; margin-right: 6px; vertical-align: middle; }
-  svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
-  svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
-  label { display: block; margin-top: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+  .payoff { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; }
+  .payoff text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  label { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; font-family: var(--mono); font-size: 11px;
           text-transform: uppercase; color: var(--muted); }
   label output { color: var(--fg); }
-  input[type=range] { display: block; width: 100%; height: 28px; margin: 2px 0 0; accent-color: var(--accent); }
-  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
-  .stat { padding: 8px 12px; background: var(--rule); border-radius: 8px; }
-  .stat small { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .stat strong { font-family: var(--serif); font-weight: 500; font-size: clamp(18px, 2.4vw, 24px); font-variant-numeric: tabular-nums; }
+  input[type=range] { display: block; width: 100%; height: 24px; margin: 0; accent-color: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+  .stat { padding: 5px 10px; background: var(--rule); border-radius: 8px; }
+  .stat small { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .stat strong { font-family: var(--serif); font-weight: 500; font-size: 24px; font-variant-numeric: tabular-nums; }
   .gain { color: var(--gain) !important; }
   .loss { color: var(--loss) !important; }
-  .scroll { overflow-x: auto; margin-top: 10px; }
-  table { font-size: 13px; }
-  th { padding: 0 8px 6px 0; font-size: 11px; white-space: nowrap; }
-  td { padding: 6px 8px 6px 0; font-variant-numeric: tabular-nums; }
-  th:last-child, td:last-child { text-align: right; }
-  .summary { font-size: 13px; }
-  .note { margin-top: 12px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  .scroll { overflow-x: auto; margin-top: 8px; }
+  table { font-size: 12px; }
+  th { padding: 0 6px 5px 0; font-size: 10px; white-space: nowrap; letter-spacing: .03em; }
+  td { padding: 5px 6px 5px 0; font-variant-numeric: tabular-nums; }
+  th:not(:first-child), td:not(:first-child) { text-align: right; }
+  .info { position: relative; display: inline-flex; flex: 0 0 auto; }
+  .info button {
+    display: grid; place-items: center; width: 28px; height: 28px; padding: 3px;
+    border: 0; border-radius: 50%; color: var(--muted); background: transparent; cursor: help;
+  }
+  .info button:hover { color: var(--fg); background: var(--rule); }
+  .info button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .info svg { display: block; width: 22px; height: 22px; }
+  .tip {
+    position: absolute; z-index: 5; top: 100%; right: 0;
+    width: min(360px, calc(100vw - 48px)); padding: 12px 14px;
+    border: 1px solid var(--gray-300); border-radius: 8px; background: var(--bg);
+    box-shadow: 0 6px 20px #14141320; color: var(--body); font: 13px/1.5 var(--sans);
+    visibility: hidden; opacity: 0;
+  }
+  .info:hover .tip, .info:focus-within .tip { visibility: visible; opacity: 1; }
+  .info.dismissed .tip { visibility: hidden; opacity: 0; }
+  @media (min-width: 641px) and (max-height: 520px) {
+    body { padding: 8px 10px; gap: 8px; }
+    h1 { font-size: 23px; }
+    .panel { padding: 8px 10px; grid-template-rows: auto auto minmax(100px, 1fr) auto auto auto auto; }
+    .stat { padding: 4px 8px; }
+    .stat strong { font-size: 22px; line-height: 1.1; }
+    td { padding-top: 3px; padding-bottom: 3px; }
+  }
+  @media (max-width: 640px) {
+    body { height: auto; min-height: 100vh; }
+    h1 { font-size: 23px; }
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .panel { grid-template-rows: auto auto 210px auto auto auto auto; }
+  }
 </style>
 </head>
 <body>
-<h1>BTC Credit Spreads vs Standalone Short Options</h1>
-<p class="lede">Interactive <strong>expiration profit/loss</strong> based on illustrative CSV quotes. BTC entry $100,000 · 30-day options · 1 BTC per contract · cash-settled · excludes fees and margin costs. Selling earns the bid; buying costs the ask.</p>
+<div class="intro">
+  <div class="title-row">
+    <h1>BTC Options: Short Option vs Credit Spread</h1>
+    <!-- Inline copy of ../icons/info.svg keeps srcdoc slide embeds self-contained. -->
+    <span class="info">
+      <button type="button" aria-label="About these payoff examples" aria-describedby="example-info"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+</svg></button>
+      <span class="tip" id="example-info" role="tooltip">Interactive expiration profit/loss based on illustrative CSV quotes. BTC entry $100,000 · 30-day options · 1 BTC per contract · cash-settled. Selling earns the bid; buying costs the ask. Excludes fees and margin costs. Charts show only the $80,000–$120,000 range. A credit received upfront is not immediate realized profit: the position retains a liability until closed or expired. Real margin requirements and spread recognition depend on the exchange.</span>
+    </span>
+  </div>
+  <p class="lede">30-day expiration P&amp;L · per 1 BTC · illustrative quotes, before fees</p>
+</div>
 
 <div class="grid">
   <div class="panel">
-    <h2>1. Bear Call Credit Spread vs Short Call</h2>
-    <div class="scroll"><table>
-      <tr><th>Leg</th><th>Premium</th></tr>
-      <tr><td>Sell $100,000 call (bid)</td><td class="gain">+$3,800</td></tr>
-      <tr><td>Buy $103,000 call (ask)</td><td class="loss">−$2,500</td></tr>
-      <tr><td><strong>Net credit</strong></td><td><strong>+$1,300</strong></td></tr>
-    </table></div>
-    <div class="legend">
-      <span><i style="background:var(--spread)"></i>Bear call credit spread</span>
-      <span><i style="background:var(--single)"></i>Short call alone</span>
+    <div>
+      <div class="title-row"><h2>Bearish: Call comparison</h2><span class="info">
+      <button type="button" aria-label="Bearish: Call comparison details" aria-describedby="call-info"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+</svg></button>
+      <span class="tip" id="call-info" role="tooltip">Short ATM call: sell $100,000 call at the $3,800 bid. Bear call credit spread: sell the same call and buy the $103,000 call at the $2,500 ask. Net credit: $1,300. The spread caps loss at $1,700, while the standalone short call has theoretically unlimited loss as BTC rises.</span>
+    </span></div>
+      <p class="setup">Sell $100k / buy $103k · <strong>Net credit $1,300</strong></p>
     </div>
-    <svg id="call" viewBox="0 0 520 300" role="img" aria-label="Expiration P&L of a bear call credit spread versus a short call"></svg>
-    <label for="callSlider">BTC at expiry <output id="callPrice"></output></label>
+    <div class="legend">
+      <span><i style="background:var(--single)"></i>Short call</span>
+      <span><i style="background:var(--spread)"></i>Bear call credit spread</span>
+    </div>
+    <svg class="payoff" id="call" viewBox="0 0 520 300" role="img" aria-label="Expiration P&amp;L of a bear call credit spread versus a short call"></svg>
+    <label for="callSlider">BTC expiration price <output id="callPrice"></output></label>
     <input id="callSlider" type="range" min="80000" max="120000" step="250" value="100000">
     <div class="stats">
-      <div class="stat"><small>Credit spread P&amp;L</small><strong id="callSpread"></strong></div>
       <div class="stat"><small>Short call P&amp;L</small><strong id="callShort"></strong></div>
+      <div class="stat"><small>Credit spread P&amp;L</small><strong id="callSpread"></strong></div>
     </div>
-    <p class="summary"><strong>Spread:</strong> max profit +$1,300 · max loss −$1,700 · breakeven $101,300.<br><strong>Short call:</strong> max profit +$3,800 · unlimited theoretical loss · breakeven $103,800.</p>
+    <div class="scroll"><table>
+      <tr><th>Metric</th><th>Short call</th><th>Credit spread</th></tr>
+      <tr><td>Initial credit</td><td>$3,800</td><td>$1,300</td></tr>
+      <tr><td>Breakeven</td><td>$103,800</td><td>$101,300</td></tr>
+      <tr><td>Maximum profit</td><td>$3,800</td><td>$1,300</td></tr>
+      <tr><td>Maximum loss</td><td>Unlimited</td><td>$1,700</td></tr>
+    </table></div>
   </div>
 
   <div class="panel">
-    <h2>2. Bull Put Credit Spread vs Short Put</h2>
-    <div class="scroll"><table>
-      <tr><th>Leg</th><th>Premium</th></tr>
-      <tr><td>Sell $100,000 put (bid)</td><td class="gain">+$3,800</td></tr>
-      <tr><td>Buy $97,000 put (ask)</td><td class="loss">−$1,800</td></tr>
-      <tr><td><strong>Net credit</strong></td><td><strong>+$2,000</strong></td></tr>
-    </table></div>
-    <div class="legend">
-      <span><i style="background:var(--spread)"></i>Bull put credit spread</span>
-      <span><i style="background:var(--single)"></i>Short put alone</span>
+    <div>
+      <div class="title-row"><h2>Bullish: Put comparison</h2><span class="info">
+      <button type="button" aria-label="Bullish: Put comparison details" aria-describedby="put-info"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+</svg></button>
+      <span class="tip" id="put-info" role="tooltip">Short ATM put: sell $100,000 put at the $3,800 bid. Bull put credit spread: sell the same put and buy the $97,000 put at the $1,800 ask. Net credit: $2,000. The spread caps loss at $1,000. The standalone short put’s worst-case loss is $96,200 at BTC = 0; its loss is bounded because BTC cannot fall below zero.</span>
+    </span></div>
+      <p class="setup">Sell $100k / buy $97k · <strong>Net credit $2,000</strong></p>
     </div>
-    <svg id="put" viewBox="0 0 520 300" role="img" aria-label="Expiration P&L of a bull put credit spread versus a short put"></svg>
-    <label for="putSlider">BTC at expiry <output id="putPrice"></output></label>
+    <div class="legend">
+      <span><i style="background:var(--single)"></i>Short put</span>
+      <span><i style="background:var(--spread)"></i>Bull put credit spread</span>
+    </div>
+    <svg class="payoff" id="put" viewBox="0 0 520 300" role="img" aria-label="Expiration P&amp;L of a bull put credit spread versus a short put"></svg>
+    <label for="putSlider">BTC expiration price <output id="putPrice"></output></label>
     <input id="putSlider" type="range" min="80000" max="120000" step="250" value="100000">
     <div class="stats">
-      <div class="stat"><small>Credit spread P&amp;L</small><strong id="putSpread"></strong></div>
       <div class="stat"><small>Short put P&amp;L</small><strong id="putShort"></strong></div>
+      <div class="stat"><small>Credit spread P&amp;L</small><strong id="putSpread"></strong></div>
     </div>
-    <p class="summary"><strong>Spread:</strong> max profit +$2,000 · max loss −$1,000 · breakeven $98,000.<br><strong>Short put:</strong> max profit +$3,800 · worst-case loss −$96,200 if BTC reaches zero · breakeven $96,200.</p>
+    <div class="scroll"><table>
+      <tr><th>Metric</th><th>Short put</th><th>Credit spread</th></tr>
+      <tr><td>Initial credit</td><td>$3,800</td><td>$2,000</td></tr>
+      <tr><td>Breakeven</td><td>$96,200</td><td>$98,000</td></tr>
+      <tr><td>Maximum profit</td><td>$3,800</td><td>$2,000</td></tr>
+      <tr><td>Maximum loss</td><td>$96,200</td><td>$1,000</td></tr>
+    </table></div>
   </div>
 </div>
 
-<p class="note">At expiration, the short call's loss is theoretically unbounded as BTC rises. A short put's loss is large but bounded because BTC cannot fall below zero. Charts show only the $80,000–$120,000 range. A credit received upfront is not immediate realized profit: the position retains a liability until closed or expired. Real margin requirements and spread recognition depend on the exchange.</p>
-
 <script>
+// Explanations also open on keyboard focus or a tap; Escape dismisses them.
+for (const info of document.querySelectorAll('.info')) {
+  info.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      info.classList.add('dismissed');
+    }
+  });
+  for (const event of ['pointerenter', 'focusin', 'click'])
+    info.addEventListener(event, () => info.classList.remove('dismissed'));
+}
+
 const money = n => (n < 0 ? '−' : '') + '$' + Math.abs(n).toLocaleString('en-US');
 const config = {
   call: { short: s => 3800 - Math.max(s - 100000, 0),
@@ -112,15 +185,16 @@ function el(tag, attrs, parent) {
   return n;
 }
 
-// Fixed viewBox; the SVG scales to its column, so no resize handling is needed.
-const W = 520, H = 300, L = 44, R = 8, T = 10, B = 28;
 const minX = 80000, maxX = 120000, minY = -18000, maxY = 6000;
-const X = s => L + (s - minX) / (maxX - minX) * (W - L - R);
-const Y = v => T + (maxY - v) / (maxY - minY) * (H - T - B);
 const cap = s => s[0].toUpperCase() + s.slice(1);
 
 function draw(kind) {
   const svg = $(kind), cfg = config[kind], price = +$(kind + 'Slider').value;
+  // Draw at the available dimensions so axis text stays readable in a slide.
+  const W = svg.clientWidth, H = svg.clientHeight, L = 38, R = 16, T = 10, B = 24;
+  const X = s => L + (s - minX) / (maxX - minX) * (W - L - R);
+  const Y = v => T + (maxY - v) / (maxY - minY) * (H - T - B);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.replaceChildren();
 
   for (let v = -15000; v <= 5000; v += 5000) {
@@ -149,7 +223,11 @@ function draw(kind) {
   }
 }
 
+const chartResize = new ResizeObserver(entries => {
+  for (const { target } of entries) draw(target.id);
+});
 for (const kind of ['call', 'put']) {
+  chartResize.observe($(kind));
   $(kind + 'Slider').addEventListener('input', () => draw(kind));
   draw(kind);
 }

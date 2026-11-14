@@ -1,0 +1,71 @@
+/* Whole presentation, including controls and readouts, stays inside a slide frame. */
+body { padding: 0; }
+main.spread-page {
+  width: min(100%, 1024px); max-width: 1024px; height: min(100dvh, 576px);
+  min-height: 520px; margin: 0 auto; padding: 8px;
+  grid-template-rows: 42px 22px 24px minmax(240px, 1fr) 46px 80px; gap: 6px;
+  --buy: #366b94; --sell: #a06b27; --net: #262722;
+}
+.spread-page header { position: relative; }
+.spread-page h1 { font-size: 18px; }
+.spread-page .header-actions { display: flex; align-items: center; gap: 10px; }
+.spread-page .chart-mode { white-space: nowrap; }
+.spread-page #date-range { font-size: 10px; }
+.spread-page .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; }
+.spread-page .legend { display: flex; gap: 14px; align-items: center; }
+.spread-page .legend span { display: inline-flex; align-items: center; gap: 5px; }
+.spread-page .key { width: 18px; border-top: 3px solid var(--net); }
+.spread-page .key.buy { border-top: 2px dashed var(--buy); }
+.spread-page .key.sell { border-top: 2px dashed var(--sell); }
+.spread-page .leg-key { opacity: .45; }
+.spread-page:has(#show-legs:checked) .leg-key { opacity: 1; }
+.spread-page .toolbar-actions { display: flex; align-items: center; gap: 14px; }
+.spread-page .toggle { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+.spread-page input[type=checkbox] { accent-color: #16766a; margin: 0; }
+.spread-page button { font: inherit; color: #4e635e; background: #fffdf7; border: 1px solid #ccc7bb; border-radius: 5px; padding: 3px 8px; cursor: pointer; }
+.spread-page button:focus-visible { outline: 2px solid #16766a; outline-offset: 2px; }
+.spread-page #strike-controls { width: 166px; }
+.spread-page .strike-lane { position: absolute; top: 0; bottom: 0; width: 80px; text-align: center; }
+.spread-page .strike-lane.buy { left: 0; --leg-color: var(--buy); }
+.spread-page .strike-lane.sell { left: 84px; --leg-color: var(--sell); }
+.spread-page .strike-lane label { display: block; font-size: 11px; color: var(--leg-color); font-weight: 650; }
+.spread-page .strike-lane output { display: block; margin-top: 3px; color: #262722; font-size: 16px; line-height: 20px; font-weight: 650; }
+.spread-page .leg-premium { display: block; font-size: 10px; margin-top: 2px; }
+.spread-page .strike-slider { position: absolute; left: 26px; width: 28px; margin: 0; padding: 0; border: 0; writing-mode: vertical-lr; direction: rtl; appearance: none; background: transparent; cursor: ns-resize; touch-action: none; }
+.spread-page .strike-slider::-webkit-slider-runnable-track { width: 6px; height: 100%; background: #d8d4c9; border-radius: 4px; }
+.spread-page .strike-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--leg-color); border: 2px solid #f8f6ef; border-radius: 50%; box-shadow: 0 0 0 1px var(--leg-color); }
+.spread-page .strike-slider::-moz-range-track { width: 6px; background: #d8d4c9; border-radius: 4px; }
+.spread-page .strike-slider::-moz-range-thumb { width: 14px; height: 14px; background: var(--leg-color); border: 2px solid #f8f6ef; border-radius: 50%; }
+.spread-page .strike-slider:focus-visible { outline: 2px solid var(--leg-color); outline-offset: 3px; border-radius: 8px; }
+.spread-page #strike-help { font-size: 10px; line-height: 14px; bottom: 0; text-align: center; }
+.spread-page #constraint-message { display: block; min-height: 14px; font-weight: 600; color: #8b5720; }
+.spread-page #option-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.spread-page .metric { padding: 5px 8px; background: #eeece5; border-radius: 5px; }
+.spread-page .metric span { display: block; font-size: 10px; line-height: 13px; }
+.spread-page .metric strong { display: block; color: #262722; font-size: 15px; line-height: 19px; font-weight: 600; }
+.spread-page #option-readout { padding: 6px 8px; }
+.spread-page #option-readout h2 { margin: 0 0 2px; font-size: 25px; line-height: 28px; }
+.spread-page #option-details, .spread-page #leg-equation { font-size: 11px; line-height: 16px; }
+.spread-page .buy-text { color: var(--buy); }
+.spread-page .sell-text { color: var(--sell); }
+.spread-page svg .buy-label { fill: var(--buy); }
+.spread-page svg .sell-label { fill: var(--sell); }
+.spread-page svg .level-label { paint-order: stroke; stroke: #f8f6ef; stroke-width: 3px; stroke-linejoin: round; }
+.spread-page svg .width-label { font-size: 10px; }
+.spread-page .info { position: relative; display: inline-flex; }
+.spread-page .info button { padding: 2px; width: 26px; height: 26px; border: 0; background: transparent; color: #726d63; }
+.spread-page .info svg { width: 22px; height: 22px; }
+.spread-page .tip { position: absolute; top: 100%; right: 0; width: 340px; z-index: 10; padding: 12px; background: #fffdf7; border: 1px solid #ccc7bb; box-shadow: 0 4px 16px #26272220; border-radius: 6px; font-size: 12px; line-height: 1.5; color: #4e4c45; visibility: hidden; }
+.spread-page .info:hover .tip, .spread-page .info:focus-within .tip { visibility: visible; }
+.spread-page .info.dismissed .tip { visibility: hidden; }
+@media (max-width: 760px) {
+  main.spread-page { min-width: 0; }
+  .spread-page .chart-mode { display: none; }
+  .spread-page .legend { gap: 6px; }
+  .spread-page .toolbar-actions { gap: 6px; }
+  .spread-page .metric { padding: 5px 3px; }
+  .spread-page .metric strong { font-size: 12px; }
+  .spread-page #option-details, .spread-page #leg-equation { font-size: 10px; line-height: 14px; }
+  .spread-page #option-readout h2 { font-size: 21px; }
+  .spread-page .tip { width: min(340px, calc(100vw - 24px)); }
+}

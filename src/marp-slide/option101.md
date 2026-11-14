@@ -19,18 +19,6 @@ theme: ivory
 </div>
 
 ---
-## Short Call 
-<div>
-<iframe src="../ihtml/ch0-intro/btcusdt-ohlc-scall.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
-</div>
-
----
-## Short Put 
-<div>
-<iframe src="../ihtml/ch0-intro/btcusdt-ohlc-sput.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
-</div>
-
----
 
 ## Ex1 : BTC price was at 100k$ (ATM)
 ### Option Chain · Bid $3,800 : Ask $4,000 · Strike price = $100k

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTCUSDT · Bear call credit spread</title>
+<link rel="stylesheet" href="../../libs/ohlc-chart.css">
+<link rel="stylesheet" href="../../libs/ohlc-spread-chart.css">
+</head>
+<body data-option-type="call" data-spread-type="credit">
+<main class="spread-page">
+  <header>
+    <div><h1>Bear call · credit spread</h1><p id="date-range"></p></div>
+    <div class="header-actions">
+      <span id="chart-mode" class="chart-mode"></span>
+      <span class="info">
+        <!-- Inline copy of ../../icons/info.svg for offline srcdoc embeds. -->
+        <button type="button" aria-label="About this credit spread" aria-describedby="model-info"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+</svg></button>
+        <span class="tip" id="model-info" role="tooltip">Sell one call and buy one protective call at a higher strike, same expiry and 1 BTC per leg. Maximum profit is the net credit; maximum loss is strike width minus credit. The upfront credit is a cash inflow, not immediate realized profit: the position retains a liability until closed or expired. Illustrative premiums follow the same chain as the single-option charts; they exclude bid/ask differences, fees and margin costs. These curves show expiration P&amp;L, not option prices before expiry. Candles are historical context; the hover price is a hypothetical expiry price. Use the Buy and Sell sliders to move strikes in 1,000-USDT steps. Equal or crossed strikes are blocked. Show legs reveals each leg’s net P&amp;L.</span>
+      </span>
+    </div>
+  </header>
+  <p id="readout" role="status" aria-live="polite" aria-atomic="true"></p>
+  <div class="toolbar">
+    <div class="legend" aria-label="Payoff curves">
+      <span><i class="key"></i>Spread</span>
+      <span class="leg-key"><i class="key buy"></i>Buy</span>
+      <span class="leg-key"><i class="key sell"></i>Sell</span>
+    </div>
+    <div class="toolbar-actions">
+      <label class="toggle"><input id="show-legs" type="checkbox" aria-controls="chart-plot">Show legs</label>
+      <button id="reset-spread" type="button">Reset strikes</button>
+    </div>
+  </div>
+  <div id="chart" tabindex="0" role="region" aria-label="Daily BTCUSDT and credit spread chart. Use left and right arrows to inspect bars; Home and End jump to the first and last visible bar.">
+    <div id="chart-layout">
+      <div id="chart-plot"></div>
+      <aside id="strike-controls" aria-label="Credit spread strikes">
+        <div class="strike-lane buy">
+          <label for="buy-strike">Buy call</label>
+          <output id="buy-value" for="buy-strike"></output>
+          <span class="leg-premium" id="buy-premium"></span>
+          <input id="buy-strike" class="strike-slider" type="range" min="-5" max="5" step="1" value="3" aria-orientation="vertical" aria-describedby="strike-help buy-valid-range" aria-controls="chart-plot option-summary option-readout">
+          <span id="buy-valid-range" hidden></span>
+        </div>
+        <div class="strike-lane sell">
+          <label for="sell-strike">Sell call</label>
+          <output id="sell-value" for="sell-strike"></output>
+          <span class="leg-premium" id="sell-premium"></span>
+          <input id="sell-strike" class="strike-slider" type="range" min="-5" max="5" step="1" value="0" aria-orientation="vertical" aria-describedby="strike-help sell-valid-range" aria-controls="chart-plot option-summary option-readout">
+          <span id="sell-valid-range" hidden></span>
+        </div>
+        <div id="strike-help">1,000 USDT / step · drag or scroll<span id="constraint-message" role="status" aria-live="polite"></span></div>
+      </aside>
+    </div>
+  </div>
+  <div id="option-summary" aria-label="Spread risk summary">
+    <div class="metric"><span>Net credit</span><strong id="net-credit"></strong></div>
+    <div class="metric"><span>Width</span><strong id="spread-width"></strong></div>
+    <div class="metric"><span>Max profit</span><strong id="max-profit"></strong></div>
+    <div class="metric"><span>Max loss</span><strong id="max-loss"></strong></div>
+    <div class="metric"><span>Breakeven</span><strong id="breakeven"></strong></div>
+  </div>
+  <section id="option-readout" data-state="neutral" aria-label="Hypothetical spread profit and loss at expiry">
+    <h2 id="option-pnl">Spread P&amp;L —</h2>
+    <p id="option-details">Hover or tap either plot to inspect a hypothetical expiry price.</p>
+    <p id="leg-equation">1 BTC per leg · same expiry · illustrative premiums · USDT</p>
+  </section>
+  <noscript>Enable JavaScript to display the interactive spread chart.</noscript>
+</main>
+<!-- Snapshot generated by ../../libs/build-btc-ohlc.mjs; no CSV fetch is needed. -->
+<script id="ohlc-data" type="application/json">
+{"source":"data-spot/BTCUSDT/BTCUSDT_agg_1d_2021-04-26_2026-10-30.csv","sha256":"283325f1150c094b9abba92a4021acad00cbc6cd25f2d252bc58586dcb8c1f6b","bars":[{"date":"2026-06-25","open":61078,"high":61962.4,"low":58115.01,"close":59794},{"date":"2026-06-26","open":59794.64,"high":60759.99,"low":58337,"close":60097.27},{"date":"2026-06-27","open":60097.27,"high":60941.17,"low":59855.16,"close":60029},{"date":"2026-06-28","open":60029.01,"high":60545.01,"low":58905,"close":59577.01},{"date":"2026-06-29","open":59577.01,"high":60780.57,"low":58900.01,"close":60260.21},{"date":"2026-06-30","open":60260.2,"high":60276.54,"low":58201,"close":58624.71},{"date":"2026-07-01","open":58624.71,"high":61334,"low":57800.19,"close":60024},{"date":"2026-07-02","open":60024,"high":62200,"low":59588,"close":61560},{"date":"2026-07-03","open":61560,"high":62979.86,"low":61248.86,"close":62583.26},{"date":"2026-07-04","open":62583.26,"high":63461.99,"low":62328.24,"close":63144.01},{"date":"2026-07-05","open":63144.01,"high":63999,"low":62436.59,"close":63650},{"date":"2026-07-06","open":63650.01,"high":64700,"low":61306.84,"close":64042.02},{"date":"2026-07-07","open":64042.93,"high":64314,"low":62671.39,"close":63363.99},{"date":"2026-07-08","open":63364,"high":63761.99,"low":61544.56,"close":62290},{"date":"2026-07-09","open":62290.01,"high":63500,"low":61705.29,"close":63230},{"date":"2026-07-10","open":63230.01,"high":64692.83,"low":62926.01,"close":64161.72},{"date":"2026-07-11","open":64161.72,"high":64504.11,"low":63819,"close":63819},{"date":"2026-07-12","open":63819.01,"high":64290.11,"low":63640.83,"close":63780},{"date":"2026-07-13","open":63780,"high":64425,"low":61824.97,"close":62334.52},{"date":"2026-07-14","open":62334.52,"high":65100,"low":62272.2,"close":65043.98},{"date":"2026-07-15","open":65043.99,"high":65600,"low":64485,"close":64756.28},{"date":"2026-07-16","open":64756.28,"high":64997.52,"low":63748.74,"close":63830.2},{"date":"2026-07-17","open":63830.2,"high":64387.99,"low":62537.56,"close":63931.67},{"date":"2026-07-18","open":63931.67,"high":64865,"low":63886.65,"close":64834.22},{"date":"2026-07-19","open":64834.21,"high":64967.25,"low":64280,"close":64722.54},{"date":"2026-07-20","open":64722.55,"high":65799,"low":63100,"close":65255.51},{"date":"2026-07-21","open":65255.51,"high":66956.15,"low":65148.75,"close":66556.16},{"date":"2026-07-22","open":66556.15,"high":66739.89,"low":65553.67,"close":66114.49},{"date":"2026-07-23","open":66114.5,"high":66313.14,"low":64650,"close":65098.97},{"date":"2026-07-24","open":65098.98,"high":65808.59,"low":63739.75,"close":64139.99},{"date":"2026-07-25","open":64140,"high":64475.28,"low":63810,"close":64375},{"date":"2026-07-26","open":64375.01,"high":65577,"low":64293.81,"close":65399.99},{"date":"2026-07-27","open":65400,"high":65744.6,"low":63605.56,"close":63755.86},{"date":"2026-07-28","open":63755.86,"high":64100,"low":62742.47,"close":63915},{"date":"2026-07-29","open":63915,"high":64744.81,"low":63267.34,"close":63984.28},{"date":"2026-07-30","open":63984.29,"high":65176.6,"low":63603.92,"close":64780.02},{"date":"2026-07-31","open":64780.03,"high":65409.56,"low":62466,"close":62887.88},{"date":"2026-08-01","open":62887.88,"high":63150,"low":62275,"close":62823.64},{"date":"2026-08-02","open":62823.65,"high":63796.33,"low":62806.58,"close":63570},{"date":"2026-08-03","open":63570.01,"high":64080,"low":62300,"close":63520},{"date":"2026-08-04","open":63520,"high":64549.16,"low":63322.01,"close":64106.56},{"date":"2026-08-05","open":64106.55,"high":65025.22,"low":63880,"close":64665.23},{"date":"2026-08-06","open":64665.24,"high":64999,"low":64172,"close":64323.61},{"date":"2026-08-07","open":64323.61,"high":65390.99,"low":64166,"close":64923.19},{"date":"2026-08-08","open":64923.2,"high":65192.54,"low":64784.19,"close":64962.6},{"date":"2026-08-09","open":64962.6,"high":65474.46,"low":64730.08,"close":64901.59},{"date":"2026-08-10","open":64901.59,"high":65391.14,"low":63806.27,"close":63970.01},{"date":"2026-08-11","open":63970.01,"high":64515.43,"low":63238,"close":63600},{"date":"2026-08-12","open":63600.01,"high":64500,"low":63310.34,"close":63479.99},{"date":"2026-08-13","open":63479.99,"high":64010,"low":62802.27,"close":63490.86},{"date":"2026-08-14","open":63490.86,"high":63617.45,"low":62535.24,"close":63043.56},{"date":"2026-08-15","open":63043.56,"high":63187.98,"low":62920,"close":63086.01},{"date":"2026-08-16","open":63086.01,"high":63390,"low":62716,"close":62900},{"date":"2026-08-17","open":62900,"high":64610.01,"low":62751.1,"close":64532.1},{"date":"2026-08-18","open":64532.11,"high":65058.81,"low":64027.85,"close":64725.42},{"date":"2026-08-19","open":64725.42,"high":70000,"low":64166,"close":69334.79},{"date":"2026-08-20","open":69334.78,"high":73400,"low":68902.22,"close":73025.15},{"date":"2026-08-21","open":73027.02,"high":79500,"low":73027.02,"close":78338.03},{"date":"2026-08-22","open":78338.03,"high":78828.15,"low":76500,"close":77074.93},{"date":"2026-08-23","open":77074.94,"high":78052.85,"low":75545.67,"close":77734},{"date":"2026-08-24","open":77734,"high":80000,"low":76670.01,"close":78992.75},{"date":"2026-08-25","open":78992.76,"high":81272.62,"low":77851,"close":78539.14},{"date":"2026-08-26","open":78539.13,"high":79251.6,"low":77632.58,"close":79023.75},{"date":"2026-08-27","open":79023.75,"high":80848.74,"low":78546.13,"close":80249.58},{"date":"2026-08-28","open":80249.59,"high":81478.87,"low":76888,"close":77845.87},{"date":"2026-08-29","open":77845.88,"high":78330,"low":77382.37,"close":78230},{"date":"2026-08-30","open":78230,"high":79400,"low":77000,"close":77682},{"date":"2026-08-31","open":77682,"high":79250,"low":77392,"close":78581.29},{"date":"2026-09-01","open":78581.3,"high":79220.61,"low":76420,"close":77439},{"date":"2026-09-02","open":77439.01,"high":77792,"low":76264,"close":77340.01},{"date":"2026-09-03","open":77340.01,"high":82300,"low":76968,"close":81270.37},{"date":"2026-09-04","open":81270.37,"high":81427.75,"low":78660,"close":79660.77},{"date":"2026-09-05","open":79660.77,"high":80200,"low":79442,"close":79831.75},{"date":"2026-09-06","open":79831.75,"high":80559.99,"low":79233,"close":80341.83},{"date":"2026-09-07","open":80341.83,"high":80443.99,"low":78680,"close":79112.01},{"date":"2026-09-08","open":79112,"high":79485,"low":77620.01,"close":78455.8},{"date":"2026-09-09","open":78455.8,"high":79760,"low":77770,"close":78306.43},{"date":"2026-09-10","open":78306.43,"high":78564.39,"low":76464,"close":76568.72},{"date":"2026-09-11","open":76568.73,"high":79890,"low":76046.58,"close":77225.7},{"date":"2026-09-12","open":77225.71,"high":77505.67,"low":77059.75,"close":77278.73},{"date":"2026-09-13","open":77278.73,"high":77450,"low":76500,"close":76842.01},{"date":"2026-09-14","open":76842.01,"high":79600,"low":76388.72,"close":78189.21},{"date":"2026-09-15","open":78189.2,"high":78250.46,"low":74967.97,"close":75644.48},{"date":"2026-09-16","open":75644.48,"high":76560.76,"low":75064.82,"close":76206.01},{"date":"2026-09-17","open":76206,"high":77179.47,"low":76000,"close":76417.01},{"date":"2026-09-18","open":76417.01,"high":81400,"low":76296,"close":80883.87},{"date":"2026-09-19","open":80883.86,"high":81951,"low":80844.58,"close":81249.99},{"date":"2026-09-20","open":81249.99,"high":81497.33,"low":80126.04,"close":81178},{"date":"2026-09-21","open":81178.01,"high":87395.67,"low":80850.22,"close":86620},{"date":"2026-09-22","open":86620.01,"high":86717.6,"low":85114,"close":86208.56},{"date":"2026-09-23","open":86208.57,"high":87278.54,"low":83500.01,"close":84397.6},{"date":"2026-09-24","open":84397.6,"high":84942.45,"low":82874.93,"close":84410.24},{"date":"2026-09-25","open":84410.24,"high":85255,"low":83183,"close":84099.99},{"date":"2026-09-26","open":84100,"high":84473.58,"low":83798,"close":84433.1},{"date":"2026-09-27","open":84433.11,"high":85159.03,"low":84132,"close":84472},{"date":"2026-09-28","open":84472.01,"high":84999,"low":82563,"close":83500.01},{"date":"2026-09-29","open":83500.01,"high":84563.99,"low":82775.94,"close":83663.66},{"date":"2026-09-30","open":83663.66,"high":85649.95,"low":82956.11,"close":83623.6},{"date":"2026-10-01","open":83623.59,"high":85273.65,"low":83186,"close":84880.05},{"date":"2026-10-02","open":84880.05,"high":87220,"low":83888,"close":84518.01},{"date":"2026-10-03","open":84518,"high":85037.63,"low":84456.02,"close":84753.56},{"date":"2026-10-04","open":84753.57,"high":86800,"low":84719.99,"close":86530},{"date":"2026-10-05","open":86530,"high":86999.11,"low":84972.01,"close":85766.87},{"date":"2026-10-06","open":85766.87,"high":86698.99,"low":85136.11,"close":85549.93},{"date":"2026-10-07","open":85549.94,"high":85598.22,"low":82787.25,"close":83321.81},{"date":"2026-10-08","open":83321.81,"high":83521.15,"low":80393.56,"close":81754.45},{"date":"2026-10-09","open":81754.46,"high":83528.98,"low":81603.52,"close":82635.55},{"date":"2026-10-10","open":82635.56,"high":83173.29,"low":82545.82,"close":82988.36},{"date":"2026-10-11","open":82988.35,"high":84199,"low":82804.65,"close":83773.12},{"date":"2026-10-12","open":83773.12,"high":84352,"low":81750.09,"close":81850},{"date":"2026-10-13","open":81850.01,"high":84168,"low":81033.66,"close":83169},{"date":"2026-10-14","open":83169.01,"high":84146.72,"low":81444.42,"close":81682.01},{"date":"2026-10-15","open":81682.02,"high":82634.3,"low":79800,"close":82245.93},{"date":"2026-10-16","open":82245.93,"high":82940.81,"low":80809.25,"close":81615.64},{"date":"2026-10-17","open":81615.91,"high":81770.01,"low":80819.66,"close":81491.04},{"date":"2026-10-18","open":81491.04,"high":82295.47,"low":80684.36,"close":82116},{"date":"2026-10-19","open":82116,"high":83158,"low":81748.85,"close":81938.4},{"date":"2026-10-20","open":81938.39,"high":83439,"low":81200,"close":83028.15},{"date":"2026-10-21","open":83028.14,"high":84898,"low":82635.32,"close":84093.42},{"date":"2026-10-22","open":84093.42,"high":84377.21,"low":80939.54,"close":81416.09},{"date":"2026-10-23","open":81416.09,"high":82060.88,"low":80513,"close":81189.43},{"date":"2026-10-24","open":81189.44,"high":81213.64,"low":79220.74,"close":80888.16},{"date":"2026-10-25","open":80888.15,"high":81033.69,"low":79845.86,"close":80154.09},{"date":"2026-10-26","open":80154.09,"high":80844.7,"low":79368.67,"close":80150.56},{"date":"2026-10-27","open":80150.56,"high":81300,"low":79506,"close":80909.77},{"date":"2026-10-28","open":80909.77,"high":81823,"low":80397.14,"close":81343.5},{"date":"2026-10-29","open":81343.51,"high":81971,"low":77910,"close":77991.89},{"date":"2026-10-30","open":77991.89,"high":78804.01,"low":76325.98,"close":77368.77}]}
+</script>
+<script src="../../libs/debit-spread-model.js"></script>
+<script src="../../libs/ohlc-spread-chart.js"></script>
+</body>
+</html>
