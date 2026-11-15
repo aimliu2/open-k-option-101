@@ -1,0 +1,48 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #262722; background: #f8f6ef; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 8px; }
+main { max-width: 1440px; height: calc(100dvh - 16px); min-height: 480px; margin: auto; display: grid; grid-template-rows: 42px 24px minmax(240px, 1fr) auto 76px; gap: 6px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-width: 0; }
+h1 { font-size: 18px; margin: 0 0 2px; font-weight: 650; letter-spacing: -.02em; }
+p { margin: 0; }
+#date-range, .chart-mode { color: #726d63; font-size: 11px; }
+.chart-mode { text-align: right; }
+#readout { font: 11px/24px ui-monospace, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#chart { width: 100%; min-width: 0; min-height: 0; overflow-x: auto; border-radius: 4px; }
+#chart:focus-visible { outline: 2px solid #16766a; outline-offset: -2px; }
+#chart-layout { position: relative; height: 100%; }
+#strike-controls { position: absolute; top: 0; width: 116px; height: 100%; font-size: 11px; color: #726d63; }
+#strike-controls label { display: block; margin-top: 4px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+#strike-value { display: block; margin-top: 3px; font-size: 17px; line-height: 20px; font-weight: 650; color: #262722; font-variant-numeric: tabular-nums; }
+#contract-moneyness { display: block; margin-top: 2px; font-weight: 600; color: #4e635e; }
+#strike-slider { position: absolute; left: 4px; width: 28px; margin: 0; padding: 0; border: 0; writing-mode: vertical-lr; direction: rtl; appearance: none; background: transparent; cursor: ns-resize; touch-action: none; }
+#strike-slider::-webkit-slider-runnable-track { width: 6px; height: 100%; background: #d8d4c9; border-radius: 4px; }
+#strike-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: #16766a; border: 2px solid #f8f6ef; border-radius: 50%; box-shadow: 0 0 0 1px #16766a; }
+#strike-slider::-moz-range-track { width: 6px; background: #d8d4c9; border-radius: 4px; }
+#strike-slider::-moz-range-thumb { width: 14px; height: 14px; background: #16766a; border: 2px solid #f8f6ef; border-radius: 50%; }
+#strike-slider:focus-visible { outline: 2px solid #16766a; outline-offset: 3px; border-radius: 8px; }
+.strike-bound { position: absolute; left: 36px; font: 11px ui-monospace, monospace; white-space: nowrap; }
+#strike-help { position: absolute; bottom: 4px; left: 0; right: 0; line-height: 16px; }
+#reset-strike { margin-top: 4px; padding: 4px 8px; font: inherit; color: #4e635e; background: #fffdf7; border: 1px solid #ccc7bb; border-radius: 5px; cursor: pointer; }
+svg { display: block; }
+svg text { fill: #726d63; font: 11px ui-monospace, monospace; }
+svg .panel-title { fill: #262722; font-weight: 600; }
+svg .profit-text { fill: #16766a; }
+svg .loss-text { fill: #b34d40; }
+#option-summary { color: #726d63; font-size: 11px; line-height: 16px; }
+#option-readout { padding: 10px 12px; text-align: center; background: #eeece5; border: 1px solid #d8d4c9; border-radius: 8px; font-variant-numeric: tabular-nums; }
+#option-readout h2 { margin: 0 0 4px; font-size: clamp(22px, 2.8vw, 30px); line-height: 1.15; letter-spacing: -.025em; }
+#option-details { color: #726d63; font-size: 12px; line-height: 18px; }
+#option-readout[data-state="profit"] { background: #e8f1eb; border-color: #9fc2b1; }
+#option-readout[data-state="profit"] h2 { color: #16766a; }
+#option-readout[data-state="loss"] { background: #f6eae5; border-color: #d8aea2; }
+#option-readout[data-state="loss"] h2 { color: #b34d40; }
+.moneyness-shade, .moneyness-annotation { transition: opacity 160ms ease; }
+svg .moneyness-annotation { fill: #42443f; font-size: 17px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .moneyness-shade, .moneyness-annotation { transition: none; } }
+@media (max-width: 600px) {
+  main { grid-template-rows: 42px 24px minmax(240px, 1fr) auto 90px; }
+  #option-summary { font-size: 10px; line-height: 14px; }
+  #option-readout { padding: 8px; }
+  #option-details { font-size: 11px; line-height: 16px; }
+}
