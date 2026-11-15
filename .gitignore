@@ -13,6 +13,7 @@ data-spot
 test
 src/marp-inline-slide
 src/images/debit-spread
+src/images/credit-spread
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

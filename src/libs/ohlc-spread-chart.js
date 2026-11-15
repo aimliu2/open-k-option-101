@@ -34,7 +34,16 @@
     return n;
   }
 
-  $('date-range').title = `Source: ${source} · CSV SHA-256: ${sha256} · ${bars.length} embedded daily bars. Spot ${price(spot)} USDT.`;
+  function updateStrikeNote(pos) {
+    const type = model.isCall ? 'call' : 'put', otmSide = model.isCall ? 'above' : 'below';
+    const itm = strike => model.isCall ? strike < spot : strike > spot;
+    const allItm = itm(pos.buy.strike) && itm(pos.sell.strike);
+    $('date-range').textContent = allItm
+      ? `Both strikes ITM: opposite trade at a worse cost. Move them ${otmSide} spot ${integer(spot)}.`
+      : `Pick ATM or slightly OTM: for ${type}s that is at or just ${otmSide} spot ${integer(spot)}.`;
+    $('date-range').classList.toggle('itm-warning', allItm);
+  }
+  $('date-range').title = `Source: ${source} · CSV SHA-256: ${sha256} · ${bars.length} embedded daily bars (${bars[0].date} — ${bars.at(-1).date} UTC). Spot ${price(spot)} USDT.`;
   function draw() {
     const pos = model.position(buyIndex, sellIndex), showLegs = $('show-legs').checked;
     const width = Math.max(760, chart.clientWidth), height = Math.max(240, chart.clientHeight);
@@ -76,7 +85,7 @@
     $('constraint-message').textContent = pos.width === model.step ? 'Minimum spread width: 1,000 USDT' : '';
     for (const [id, value] of [[$('net-amount') ? 'net-amount' : model.isCredit ? 'net-credit' : 'net-debit', pos.amount], ['spread-width', pos.width], ['max-loss', pos.maxLoss], ['max-profit', pos.maxProfit], ['breakeven', pos.breakeven]]) $(id).textContent = money(value);
     $('chart-mode').textContent = `1 BTC / leg · Spot ${integer(spot)}`;
-    $('date-range').textContent = `BTCUSDT · 1 day · ${visible[0].date} — ${bars.at(-1).date} UTC · ${count} bars`;
+    updateStrikeNote(pos);
 
     $('chart-plot').replaceChildren();
     const svg = make('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img',

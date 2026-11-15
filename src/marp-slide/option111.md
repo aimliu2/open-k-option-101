@@ -23,7 +23,7 @@ theme: ivory
 ---
 
 ### Debit Spread was still mild directional
-
+###### pick ATM or slightly OTM for debit spread
 
 <div>
 <iframe src="../ihtml/10debit_spreads_vs_long_options.html" width="1024" height="576" style="border:0" title="Long put payoff chart"></iframe>
